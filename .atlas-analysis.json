@@ -1,0 +1,132 @@
+{
+  "projectType": "saas",
+  "projectName": "Pro Stock Tool",
+  "projectDescription": "A comprehensive inventory management system for tracking products, warehouses, categories, and suppliers with detailed reporting capabilities.",
+  "theme": "mint",
+  "primaryColor": "#2e6df6",
+  "lightColor": "#4a90e2",
+  "darkColor": "#1e4db8",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/warehouse-management",
+              "features/category-management",
+              "features/product-management",
+              "features/supplier-management",
+              "features/parameters"
+            ]
+          },
+          {
+            "group": "User Management",
+            "pages": [
+              "user-management/authentication",
+              "user-management/registration",
+              "user-management/user-accounts"
+            ]
+          },
+          {
+            "group": "Reports & Analytics",
+            "pages": [
+              "reports/inventory-reports",
+              "reports/movement-tracking",
+              "reports/product-rotation"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/overview",
+              "api/authentication",
+              "api/warehouses",
+              "api/categories",
+              "api/subcategories",
+              "api/suppliers",
+              "api/parameters"
+            ]
+          },
+          {
+            "group": "Database",
+            "pages": [
+              "api/database-schema",
+              "api/database-setup"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Configuration",
+            "pages": [
+              "guides/server-setup",
+              "guides/database-configuration",
+              "guides/frontend-setup"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "guides/project-structure",
+              "guides/coding-standards",
+              "guides/troubleshooting"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Warehouse and storage location management",
+    "Product categorization with categories and subcategories",
+    "Inventory tracking with min/max stock levels and expiration dates",
+    "Supplier management and tracking",
+    "Customizable inventory parameters and concepts",
+    "User authentication and registration",
+    "Real-time inventory reporting",
+    "Product movement tracking (entries, exits, returns)",
+    "Color-coded category system",
+    "RESTful API with CRUD operations"
+  ],
+  "publicApiSurface": [
+    "GET /database/bodega.php - List all warehouses",
+    "POST /database/bodega.php - Create new warehouse",
+    "PUT /database/bodega.php - Update warehouse",
+    "DELETE /database/bodega.php - Delete warehouse",
+    "GET /database/categorias.php - List all categories",
+    "POST /database/categorias.php - Create new category",
+    "PUT /database/categorias.php - Update category",
+    "DELETE /database/categorias.php - Delete category",
+    "GET /database/subcategorias.php - List subcategories",
+    "POST /database/subcategorias.php - Create subcategory",
+    "PUT /database/subcategorias.php - Update subcategory",
+    "DELETE /database/subcategorias.php - Delete subcategory",
+    "GET /database/proveedores.php - List suppliers",
+    "POST /database/proveedores.php - Create supplier",
+    "PUT /database/proveedores.php - Update supplier",
+    "DELETE /database/proveedores.php - Delete supplier",
+    "GET /database/parametros.php - List inventory parameters",
+    "POST /database/parametros.php - Create parameter",
+    "PUT /database/parametros.php - Update parameter",
+    "DELETE /database/parametros.php - Delete parameter",
+    "POST /database/registro.php - Register new user"
+  ]
+}
