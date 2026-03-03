@@ -1,0 +1,369 @@
+---
+title: Database Schema
+description: Complete database schema and table structures for Pro Stock Tool
+---
+
+## Database Overview
+
+Pro Stock Tool uses the **prostocktool** database with MySQL/MariaDB. The schema consists of seven core tables that manage users, products, categories, suppliers, warehouses, and product states.
+
+## Tables
+
+### usuarios
+
+Stores user authentication and profile information.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INT | PRIMARY KEY, AUTO_INCREMENT | Unique user identifier |
+| `email` | VARCHAR | UNIQUE, NOT NULL | User email address |
+| `nombre` | VARCHAR(100) | NOT NULL | Full name (2-100 characters) |
+| `identidad` | VARCHAR(20) | UNIQUE, NOT NULL | Identity number (6-20 digits) |
+| `password` | VARCHAR(255) | NOT NULL | Bcrypt hashed password |
+| `creado_en` | TIMESTAMP | DEFAULT NOW() | Account creation timestamp |
+
+**Validations:**
+- Email must be valid format
+- Name: 2-100 characters
+- Identity: 6-20 numeric digits
+- Password: minimum 6 characters (hashed with bcrypt)
+
+**Indexes:**
+- Primary: `id`
+- Unique: `email`, `identidad`
+
+---
+
+### categorias
+
+Product categories with hierarchical organization.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INT | PRIMARY KEY, AUTO_INCREMENT | Unique category identifier |
+| `nombre` | VARCHAR(50) | UNIQUE, NOT NULL | Category name |
+| `descripcion` | VARCHAR(200) | | Category description |
+| `color` | VARCHAR(7) | DEFAULT '#2e6df6' | Hex color code for UI |
+| `estado` | VARCHAR(20) | DEFAULT 'ACTIVO' | Status (ACTIVO/INACTIVO) |
+| `fecha_creacion` | TIMESTAMP | DEFAULT NOW() | Creation timestamp |
+| `fecha_actualizacion` | TIMESTAMP | ON UPDATE NOW() | Last update timestamp |
+
+**Validations:**
+- Name: required, unique, max 50 characters
+- Description: max 200 characters
+- Color: hex format (#RRGGBB)
+
+**Business Rules:**
+- Cannot delete category with associated products
+- Name must be unique across all categories
+
+**Indexes:**
+- Primary: `id`
+- Unique: `nombre`
+
+---
+
+### subcategorias
+
+Product subcategories linked to parent categories.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INT | PRIMARY KEY, AUTO_INCREMENT | Unique subcategory identifier |
+| `categoria_id` | INT | FOREIGN KEY, NOT NULL | Parent category reference |
+| `nombre` | VARCHAR(50) | NOT NULL | Subcategory name |
+| `descripcion` | VARCHAR(200) | | Subcategory description |
+| `color` | VARCHAR(7) | DEFAULT '#2e6df6' | Hex color code for UI |
+| `estado` | VARCHAR(20) | DEFAULT 'ACTIVO' | Status (ACTIVO/INACTIVO) |
+| `fecha_creacion` | TIMESTAMP | DEFAULT NOW() | Creation timestamp |
+| `fecha_actualizacion` | TIMESTAMP | ON UPDATE NOW() | Last update timestamp |
+
+**Relationships:**
+```sql
+FOREIGN KEY (categoria_id) REFERENCES categorias(id)
+```
+
+**Validations:**
+- Name: required, max 50 characters
+- Description: max 200 characters
+- Category ID must exist in categorias table
+- Name must be unique within the same category
+
+**Business Rules:**
+- Cannot delete subcategory with associated products
+- Name uniqueness is enforced per category (same name allowed in different categories)
+
+**Indexes:**
+- Primary: `id`
+- Foreign Key: `categoria_id`
+- Composite Unique: `(nombre, categoria_id)`
+
+---
+
+### parametros
+
+Product state/status parameters with color coding.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INT | PRIMARY KEY, AUTO_INCREMENT | Unique parameter identifier |
+| `codigo` | VARCHAR(10) | UNIQUE, NOT NULL | Auto-generated code (001, 002, etc.) |
+| `nombre` | VARCHAR(50) | UNIQUE, NOT NULL | Parameter name |
+| `descripcion` | TEXT | | Parameter description |
+| `color` | VARCHAR(7) | DEFAULT '#4a90e2' | Hex color code for UI |
+| `fecha_creacion` | TIMESTAMP | DEFAULT NOW() | Creation timestamp |
+| `fecha_actualizacion` | TIMESTAMP | ON UPDATE NOW() | Last update timestamp |
+
+**Auto-generation:**
+```sql
+-- Automatic code generation
+SELECT LPAD(COALESCE(MAX(CAST(codigo AS UNSIGNED)),0)+1,3,'0') AS next_codigo 
+FROM parametros
+```
+
+**Validations:**
+- Name: required, unique, max 50 characters
+- Color: hex format (#RRGGBB)
+- Code: auto-generated, 3-digit zero-padded
+
+**Business Rules:**
+- Cannot delete parameter with associated products
+- Both code and name must be unique
+
+**Indexes:**
+- Primary: `id`
+- Unique: `codigo`, `nombre`
+
+---
+
+### proveedores
+
+Supplier/vendor information and contact details.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INT | PRIMARY KEY, AUTO_INCREMENT | Unique supplier identifier |
+| `nif` | VARCHAR(20) | | Tax identification number |
+| `nombre` | VARCHAR(100) | NOT NULL | Supplier name |
+| `contacto` | VARCHAR(100) | | Contact person name |
+| `email` | VARCHAR(100) | | Contact email |
+| `telefono` | VARCHAR(20) | | Phone number |
+| `direccion` | VARCHAR(255) | | Street address |
+| `ciudad` | VARCHAR(100) | | City |
+| `web` | VARCHAR(255) | | Website URL |
+| `terminos` | INT | NULLABLE | Payment terms (days) |
+| `parametro_id` | INT | FOREIGN KEY, NULLABLE | Status parameter reference |
+| `fecha_creacion` | TIMESTAMP | DEFAULT NOW() | Creation timestamp |
+| `fecha_actualizacion` | TIMESTAMP | ON UPDATE NOW() | Last update timestamp |
+
+**Relationships:**
+```sql
+FOREIGN KEY (parametro_id) REFERENCES parametros(id)
+```
+
+**Query with Status:**
+```sql
+SELECT pr.id, pr.nif, pr.nombre, pr.contacto, pr.email, pr.telefono, 
+       pr.direccion, pr.ciudad, pr.web, pr.terminos, pr.parametro_id,
+       par.nombre AS estado_nombre, par.color AS estado_color
+FROM proveedores pr
+LEFT JOIN parametros par ON par.id = pr.parametro_id
+ORDER BY pr.id DESC
+```
+
+**Validations:**
+- Name: required
+- All other fields: optional
+
+**Indexes:**
+- Primary: `id`
+- Foreign Key: `parametro_id`
+
+---
+
+### bodegas
+
+Warehouse/storage location management.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | INT | PRIMARY KEY, AUTO_INCREMENT | Unique warehouse identifier |
+| `nombre` | VARCHAR(100) | UNIQUE, NOT NULL | Warehouse name |
+| `descripcion` | TEXT | | Warehouse description |
+| `fecha_creacion` | TIMESTAMP | DEFAULT NOW() | Creation timestamp |
+| `fecha_actualizacion` | TIMESTAMP | ON UPDATE NOW() | Last update timestamp |
+
+**Validations:**
+- Name: required, unique, max 100 characters
+
+**Business Rules:**
+- Cannot delete warehouse with associated products
+- Name must be unique across all warehouses
+
+**Indexes:**
+- Primary: `id`
+- Unique: `nombre`
+
+---
+
+### productos
+
+Product inventory and details (referenced table).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | INT | Primary key |
+| `categoria_id` | INT | Foreign key to categorias |
+| `subcategoria_id` | INT | Foreign key to subcategorias |
+| `parametro_id` | INT | Foreign key to parametros (status) |
+| `bodega_id` | INT | Foreign key to bodegas |
+| Additional columns... | | Product-specific fields |
+
+**Relationships:**
+```sql
+FOREIGN KEY (categoria_id) REFERENCES categorias(id)
+FOREIGN KEY (subcategoria_id) REFERENCES subcategorias(id)
+FOREIGN KEY (parametro_id) REFERENCES parametros(id)
+FOREIGN KEY (bodega_id) REFERENCES bodegas(id)
+```
+
+<Note>
+The productos table is referenced by other tables but its full schema is defined elsewhere in the application.
+</Note>
+
+## Entity Relationship Diagram
+
+```
+┌──────────────┐
+│   usuarios   │
+└──────────────┘
+
+┌──────────────┐      ┌──────────────────┐      ┌──────────────┐
+│  categorias  │──────│ subcategorias    │      │   productos  │
+│              │ 1:N  │                  │──────│              │
+│ id           │      │ categoria_id (FK)│  N:1 │              │
+└──────────────┘      └──────────────────┘      └──────────────┘
+                                                        │
+                                                        │
+┌──────────────┐                                       │
+│  parametros  │───────────────────────────────────────┘
+│              │ 1:N                                    │
+│ id           │                                        │
+└──────────────┘                                        │
+       │                                                │
+       │ 1:N                                            │
+       │                                                │
+┌──────────────┐                                        │
+│ proveedores  │                                        │
+│              │                                        │
+│ parametro_id │                                        │
+└──────────────┘                                        │
+                                                        │
+┌──────────────┐                                        │
+│   bodegas    │────────────────────────────────────────┘
+│              │ 1:N
+│ id           │
+└──────────────┘
+```
+
+## Common Query Patterns
+
+### Get Categories with Product Count
+
+```sql
+SELECT c.*, COUNT(p.id) as productos_count
+FROM categorias c
+LEFT JOIN productos p ON p.categoria_id = c.id
+GROUP BY c.id
+ORDER BY c.id DESC
+```
+
+### Get Subcategories for a Category
+
+```sql
+SELECT * FROM subcategorias 
+WHERE categoria_id = ? 
+ORDER BY id DESC
+```
+
+### Get Parameters with Usage Count
+
+```sql
+SELECT par.id, par.codigo, par.nombre, par.descripcion, par.color,
+       COUNT(prod.id) AS productos_count
+FROM parametros par
+LEFT JOIN productos prod ON prod.parametro_id = par.id
+GROUP BY par.id, par.codigo, par.nombre, par.descripcion, par.color
+ORDER BY par.id
+```
+
+### Get Suppliers with Status
+
+```sql
+SELECT pr.*, 
+       par.nombre AS estado_nombre, 
+       par.color AS estado_color
+FROM proveedores pr
+LEFT JOIN parametros par ON par.id = pr.parametro_id
+ORDER BY pr.id DESC
+```
+
+### Check for Foreign Key Dependencies
+
+```sql
+-- Check if category can be deleted
+SELECT COUNT(*) as count 
+FROM productos 
+WHERE categoria_id = ?
+
+-- Check if subcategory can be deleted
+SELECT COUNT(*) as count 
+FROM productos 
+WHERE subcategoria_id = ?
+
+-- Check if parameter can be deleted
+SELECT COUNT(*) as count 
+FROM productos 
+WHERE parametro_id = ?
+
+-- Check if warehouse can be deleted
+SELECT COUNT(*) as count 
+FROM productos 
+WHERE bodega_id = ?
+```
+
+## Data Integrity Rules
+
+### Cascade Restrictions
+
+All foreign key relationships use **RESTRICT** behavior:
+
+- Cannot delete a category if it has subcategories or products
+- Cannot delete a subcategory if it has products
+- Cannot delete a parameter if it's used by products or suppliers
+- Cannot delete a warehouse if it has products
+
+### Uniqueness Constraints
+
+- **categorias**: `nombre` unique globally
+- **subcategorias**: `(nombre, categoria_id)` unique per category
+- **parametros**: `codigo` and `nombre` each unique globally
+- **proveedores**: no unique constraints on business fields
+- **bodegas**: `nombre` unique globally
+- **usuarios**: `email` and `identidad` each unique globally
+
+### Timestamp Behavior
+
+All tables include:
+- `fecha_creacion`: Set to `NOW()` on INSERT
+- `fecha_actualizacion`: Set to `NOW()` on UPDATE (where applicable)
+
+## Character Encoding
+
+All API responses use:
+```
+Content-Type: application/json; charset=utf-8
+JSON_UNESCAPED_UNICODE flag for proper character handling
+```
+
+Spanish characters (ñ, á, é, í, ó, ú) are properly supported throughout the database.

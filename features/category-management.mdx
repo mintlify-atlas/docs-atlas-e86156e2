@@ -1,0 +1,491 @@
+---
+title: Category Management
+description: Organize products using categories and subcategories with visual color coding
+---
+
+## Overview
+
+The category management system provides a hierarchical organization structure for your products. You can create main categories and nested subcategories, each with custom colors and status settings. This enables efficient product classification and filtering across your inventory.
+
+## Key Features
+
+- Create unlimited categories and subcategories
+- Visual color palette with 10+ preset colors
+- Hierarchical organization (categories → subcategories)
+- Status management (ACTIVO/INACTIVO)
+- Real-time search and filtering
+- Color inheritance for subcategories
+- Duplicate name prevention
+
+## Data Structure
+
+### Categories
+
+| Field | Type | Required | Max Length | Description |
+|-------|------|----------|------------|--------------|
+| `id` | Integer | Auto | - | Unique identifier |
+| `nombre` | String | Yes | 50 chars | Category name (unique) |
+| `descripcion` | String | No | 200 chars | Category description |
+| `color` | String | Yes | 7 chars | Hex color code (e.g., #2e6df6) |
+| `estado` | Enum | Yes | - | ACTIVO or INACTIVO |
+| `fecha_creacion` | DateTime | Auto | - | Creation timestamp |
+| `fecha_actualizacion` | DateTime | Auto | - | Last update timestamp |
+
+### Subcategories
+
+Subcategories have all category fields plus:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `categoria_id` | Integer | Yes | Parent category reference |
+
+## User Workflows
+
+### Creating a Category
+
+<Steps>
+  <Step title="Access category mode">
+    Ensure you're in **Categorías** mode (button should be active in the top toolbar).
+  </Step>
+  
+  <Step title="Open create dialog">
+    Click **+ Crear Categoría** button.
+  </Step>
+  
+  <Step title="Enter category details">
+    Fill in the form:
+    - **Nombre** (required, max 50 chars): Unique category name
+    - **Descripción** (optional, max 200 chars): Additional details
+    - **Color**: Click a color swatch from the palette
+    - **Estado**: Select ACTIVO or INACTIVO
+  </Step>
+  
+  <Step title="Save category">
+    Click **Guardar**. The system validates uniqueness and length constraints.
+  </Step>
+</Steps>
+
+### Creating a Subcategory
+
+<Note>
+  You must have at least one category before creating subcategories.
+</Note>
+
+<Steps>
+  <Step title="Switch to subcategory mode">
+    Click **Subcategorías** button in the top toolbar.
+  </Step>
+  
+  <Step title="Open create dialog">
+    Click **+ Crear Subcategoría** button.
+  </Step>
+  
+  <Step title="Select parent category">
+    Choose the parent category from the dropdown. The subcategory will inherit the parent's color by default.
+  </Step>
+  
+  <Step title="Enter subcategory details">
+    - **Categoría** (required): Parent category
+    - **Nombre** (required, max 50 chars): Subcategory name
+    - **Descripción** (optional, max 200 chars)
+    - **Color**: Auto-filled from parent, but can be changed
+    - **Estado**: ACTIVO or INACTIVO
+  </Step>
+  
+  <Step title="Save subcategory">
+    Click **Guardar** to create the subcategory.
+  </Step>
+</Steps>
+
+<Info>
+  When you select a parent category, the color picker automatically updates to match the parent's color. You can override this if needed.
+</Info>
+
+### Editing Categories/Subcategories
+
+<Steps>
+  <Step title="Locate the item">
+    Use the search bar or browse the card grid to find the category/subcategory.
+  </Step>
+  
+  <Step title="Open edit mode">
+    Click the **edit icon** (✏️) in the top-right corner of the card.
+  </Step>
+  
+  <Step title="Modify fields">
+    Update any field. For subcategories, you can change the parent category.
+  </Step>
+  
+  <Step title="Save changes">
+    Click **Guardar**. Validation rules apply as in creation.
+  </Step>
+</Steps>
+
+### Deleting Categories/Subcategories
+
+<Warning>
+  Deletion is blocked if products are associated with the category/subcategory.
+</Warning>
+
+<Steps>
+  <Step title="Select item">
+    Click the **delete icon** (🗑️) on the card.
+  </Step>
+  
+  <Step title="Confirm deletion">
+    A browser confirmation dialog appears. Click **OK** to proceed.
+  </Step>
+  
+  <Step title="Validation check">
+    The backend checks for associated products:
+    - If products exist, deletion fails with an error
+    - If no products, the item is permanently deleted
+  </Step>
+</Steps>
+
+### Switching Between Categories and Subcategories
+
+The interface has two modes accessible via top toolbar buttons:
+
+- **Categorías**: Shows all main categories
+- **Subcategorías**: Shows all subcategories with parent category names
+
+Switching modes:
+- Updates the button text ("+ Crear Categoría" vs "+ Crear Subcategoría")
+- Changes the search placeholder
+- Reloads the appropriate data set
+
+## Color Palette
+
+The system provides a predefined color palette for visual organization:
+
+<CardGroup cols={3}>
+  <Card title="Blue" icon="circle" iconType="solid" color="#2e6df6">
+    Default category color
+  </Card>
+  <Card title="Red" icon="circle" iconType="solid" color="#ef4444">
+    High priority items
+  </Card>
+  <Card title="Green" icon="circle" iconType="solid" color="#10b981">
+    Active/available
+  </Card>
+  <Card title="Yellow" icon="circle" iconType="solid" color="#f59e0b">
+    Warning/attention
+  </Card>
+  <Card title="Purple" icon="circle" iconType="solid" color="#8b5cf6">
+    Premium items
+  </Card>
+  <Card title="Custom" icon="palette">
+    More colors available in the picker
+  </Card>
+</CardGroup>
+
+## API Reference
+
+### Categories Endpoint
+
+```
+GET    /database/categorias.php      # List all categories
+POST   /database/categorias.php      # Create category
+PUT    /database/categorias.php      # Update category
+DELETE /database/categorias.php      # Delete category
+```
+
+### Subcategories Endpoint
+
+```
+GET    /database/subcategorias.php   # List all subcategories
+POST   /database/subcategorias.php   # Create subcategory
+PUT    /database/subcategorias.php   # Update subcategory
+DELETE /database/subcategorias.php   # Delete subcategory
+```
+
+### Create Category
+
+<Tabs>
+  <Tab title="Request">
+    ```javascript
+    const response = await fetch('../database/categorias.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre: 'Electronics',
+        descripcion: 'Electronic devices and accessories',
+        color: '#2e6df6',
+        estado: 'ACTIVO'
+      })
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Success Response">
+    ```json
+    {
+      "success": true,
+      "id": 5,
+      "message": "Categoría creada exitosamente"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Error Response">
+    ```json
+    {
+      "success": false,
+      "error": "Ya existe una categoría con este nombre"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Create Subcategory
+
+<Tabs>
+  <Tab title="Request">
+    ```javascript
+    const response = await fetch('../database/subcategorias.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        categoria_id: 5,
+        nombre: 'Smartphones',
+        descripcion: 'Mobile phones and devices',
+        color: '#2e6df6',
+        estado: 'ACTIVO'
+      })
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Success Response">
+    ```json
+    {
+      "success": true,
+      "id": 12,
+      "message": "Subcategoría creada exitosamente"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Update Category
+
+<Tabs>
+  <Tab title="Request">
+    ```javascript
+    const response = await fetch('../database/categorias.php', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: 5,
+        nombre: 'Electronics & Tech',
+        descripcion: 'Updated description',
+        color: '#8b5cf6',
+        estado: 'ACTIVO'
+      })
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Success Response">
+    ```json
+    {
+      "success": true,
+      "message": "Categoría actualizada exitosamente"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Delete Category
+
+<Tabs>
+  <Tab title="Request">
+    ```javascript
+    const response = await fetch('../database/categorias.php', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: 5 })
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Success Response">
+    ```json
+    {
+      "success": true,
+      "message": "Categoría eliminada exitosamente"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Error Response (Has Products)">
+    ```json
+    {
+      "success": false,
+      "error": "No se puede eliminar. Tiene 23 producto(s) asociado(s)"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Validation Rules
+
+<AccordionGroup>
+  <Accordion title="Name Validation">
+    - **Required**: Cannot be empty
+    - **Max Length**: 50 characters
+    - **Uniqueness**: Must be unique across all categories (or subcategories)
+    - **Trimming**: Whitespace is automatically removed
+    - **Validation Location**: Both frontend (line 499-508) and backend (line 56-62)
+  </Accordion>
+  
+  <Accordion title="Description Validation">
+    - **Optional**: Can be left empty
+    - **Max Length**: 200 characters
+    - **Trimming**: Whitespace is automatically removed
+    - **Validation Location**: Frontend (line 510-513)
+  </Accordion>
+  
+  <Accordion title="Color Validation">
+    - **Format**: Must be hex color code (e.g., #2e6df6)
+    - **Default**: #2e6df6 (blue) if not specified
+    - **Inheritance**: Subcategories inherit parent color by default
+    - **Change Detection**: Color picker updates when parent category changes
+  </Accordion>
+  
+  <Accordion title="Estado Validation">
+    - **Values**: ACTIVO or INACTIVO only
+    - **Default**: ACTIVO for new items
+    - **Required**: Must be specified
+  </Accordion>
+  
+  <Accordion title="Subcategory Parent Validation">
+    - **Required**: Must select a parent category
+    - **Frontend Check**: Validates selection before submission (line 532-536)
+    - **Prerequisite**: At least one category must exist (line 299-302)
+  </Accordion>
+</AccordionGroup>
+
+## UI Components
+
+### Category Card
+
+Each category/subcategory displays as a card with:
+
+- **Actions**: Edit and delete buttons (top-right)
+- **Icon**: Colored circle with folder icon
+- **Parent Name**: (Subcategories only) Shows parent category
+- **Title**: Category/subcategory name
+- **Description**: Truncated description text
+- **Footer**: Product count and status badge
+
+### Status Badges
+
+Status is displayed with color coding:
+
+- **ACTIVO**: Green badge
+- **INACTIVO**: Red/gray badge
+
+CSS classes: `status-activo` and `status-inactivo`
+
+### Empty States
+
+**No Categories:**
+```
+┌─────────────────────────────┐
+│      📁 Folder Icon         │
+│                             │
+│ No hay categorías disponibles│
+└─────────────────────────────┘
+```
+
+**No Subcategories:**
+```
+┌─────────────────────────────┐
+│      📁 Folder Icon         │
+│                             │
+│No hay subcategorías disponibles│
+└─────────────────────────────┘
+```
+
+## Technical Implementation
+
+### Frontend (categorias.js)
+
+**Key Functions:**
+
+- `cargarCategorias(filtro)` - Fetches categories with optional filter (line 104)
+- `mostrarCategorias(filtro)` - Renders category cards (line 122)
+- `cargarSubcategorias(filtro)` - Fetches subcategories (line 220)
+- `mostrarSubcategorias(filtro)` - Renders subcategory cards with parent names (line 238)
+- `abrirModalNuevaSubcategoria()` - Dynamically creates category select (line 298)
+- `updateColorSwatch()` - Highlights selected color (line 81)
+
+**Mode Switching:**
+
+The `currentMode` variable (line 7) toggles between 'categorias' and 'subcategorias', affecting:
+- Button text
+- Search placeholder
+- Modal content
+- Data loading function
+
+### Backend (categorias.php)
+
+**Database Tables:**
+- `categorias` - Main category table
+- `subcategorias` - Subcategory table with FK to categorias
+
+**Key Operations:**
+
+- Line 21: SELECT with DESC ordering
+- Line 87: Unique name check before INSERT
+- Line 99: INSERT with automatic timestamps
+- Line 187: Unique name check excluding current ID
+- Line 256: Product association check before DELETE
+- Line 264-273: Dynamic column detection for FK relationship
+
+<Info>
+  The backend uses intelligent FK column detection to support various naming conventions: `categoria_id`, `id_categoria`, `categoria`, or `categoriaId`.
+</Info>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Logical Grouping" icon="folder-tree">
+    Create categories that match your business organization (e.g., Electronics → Smartphones, Laptops)
+  </Card>
+  
+  <Card title="Consistent Colors" icon="palette">
+    Use color coding consistently (e.g., all food items green, electronics blue)
+  </Card>
+  
+  <Card title="Descriptive Names" icon="font">
+    Keep names clear and concise within the 50-character limit
+  </Card>
+  
+  <Card title="Status Management" icon="toggle-on">
+    Use INACTIVO status to hide categories without deleting historical data
+  </Card>
+  
+  <Card title="Plan Hierarchy" icon="sitemap">
+    Design your category structure before creating products for better organization
+  </Card>
+  
+  <Card title="Regular Reviews" icon="calendar-check">
+    Periodically audit categories and merge duplicates or similar items
+  </Card>
+</CardGroup>
+
+## Common Error Messages
+
+| Error Message | Cause | Solution |
+|---------------|-------|----------|
+| "El nombre es obligatorio" | Empty name field | Enter a category name |
+| "El nombre no puede superar 50 caracteres" | Name too long | Shorten the name |
+| "La descripción no puede superar 200 caracteres" | Description too long | Reduce description length |
+| "Ya existe una categoría con este nombre" | Duplicate name | Choose a unique name |
+| "Debe seleccionar una categoría" | No parent selected (subcategory) | Select a parent category |
+| "Debe crear al menos una categoría primero" | Creating subcategory without categories | Create a category first |
+| "Categoría no encontrada" | Invalid ID | Refresh and try again |
+| "No se puede eliminar. Tiene X producto(s) asociado(s)" | Products linked | Reassign products first |

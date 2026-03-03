@@ -1,0 +1,653 @@
+---
+title: Database Configuration
+description: Set up and configure MySQL database for Pro Stock Tool
+---
+
+## Overview
+
+Pro Stock Tool uses MySQL (or MariaDB) as its database backend. This guide covers database installation, configuration, table creation, and connection setup.
+
+## Prerequisites
+
+- MySQL 5.7+ or MariaDB 10.3+
+- PHP MySQLi extension installed
+- Database administration access (root or equivalent)
+- Completed [Server Setup](/guides/server-setup)
+
+## Database Installation
+
+<Steps>
+
+<Step title="Install MySQL/MariaDB">
+
+**Ubuntu/Debian (MySQL):**
+```bash
+sudo apt update
+sudo apt install mysql-server
+sudo systemctl start mysql
+sudo systemctl enable mysql
+```
+
+**Ubuntu/Debian (MariaDB):**
+```bash
+sudo apt install mariadb-server
+sudo systemctl start mariadb
+sudo systemctl enable mariadb
+```
+
+**CentOS/RHEL:**
+```bash
+sudo yum install mysql-server
+sudo systemctl start mysqld
+sudo systemctl enable mysqld
+```
+
+**macOS:**
+```bash
+brew install mysql
+brew services start mysql
+```
+
+</Step>
+
+<Step title="Secure MySQL Installation">
+
+Run the security script to set root password and remove test databases:
+
+```bash
+sudo mysql_secure_installation
+```
+
+Follow the prompts:
+- Set root password: **Yes**
+- Remove anonymous users: **Yes**
+- Disallow root login remotely: **Yes**
+- Remove test database: **Yes**
+- Reload privilege tables: **Yes**
+
+</Step>
+
+<Step title="Verify Installation">
+
+Connect to MySQL:
+
+```bash
+mysql -u root -p
+```
+
+Check version:
+
+```sql
+SELECT VERSION();
+```
+
+</Step>
+
+</Steps>
+
+## Database Creation
+
+<Steps>
+
+<Step title="Create Database">
+
+Connect to MySQL and create the database:
+
+```sql
+CREATE DATABASE prostocktool CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+<Note>
+The `utf8mb4` character set supports all Unicode characters including emojis and special symbols.
+</Note>
+
+</Step>
+
+<Step title="Create Database User">
+
+Create a dedicated user for the application:
+
+```sql
+CREATE USER 'prostockuser'@'localhost' IDENTIFIED BY 'your_secure_password';
+```
+
+Grant necessary privileges:
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON prostocktool.* TO 'prostockuser'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+<Warning>
+Replace `your_secure_password` with a strong password. Use a password generator for production environments.
+</Warning>
+
+For development (grants all privileges):
+
+```sql
+GRANT ALL PRIVILEGES ON prostocktool.* TO 'prostockuser'@'localhost';
+FLUSH PRIVILEGES;
+```
+
+</Step>
+
+<Step title="Verify Database Access">
+
+Test the new user credentials:
+
+```bash
+mysql -u prostockuser -p prostocktool
+```
+
+List databases:
+
+```sql
+SHOW DATABASES;
+```
+
+</Step>
+
+</Steps>
+
+## Database Schema
+
+Create the required tables for Pro Stock Tool:
+
+<Steps>
+
+<Step title="Create Users Table">
+
+```sql
+USE prostocktool;
+
+CREATE TABLE usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    nombre VARCHAR(100) NOT NULL,
+    identidad VARCHAR(20) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_email (email),
+    INDEX idx_identidad (identidad)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+This table stores user account information with:
+- **id**: Unique user identifier
+- **email**: User email (unique)
+- **nombre**: User full name
+- **identidad**: National ID number (6-20 digits)
+- **password**: Bcrypt hashed password
+- **creado_en**: Account creation timestamp
+- **actualizado_en**: Last update timestamp
+
+</Step>
+
+<Step title="Create Bodegas Table">
+
+```sql
+CREATE TABLE bodegas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL UNIQUE,
+    descripcion VARCHAR(300),
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_nombre (nombre)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+This table manages warehouse/storage locations with:
+- **id**: Unique warehouse identifier
+- **nombre**: Warehouse name (unique, max 100 chars)
+- **descripcion**: Optional description (max 300 chars)
+- **fecha_creacion**: Creation timestamp
+- **fecha_actualizacion**: Last update timestamp
+
+</Step>
+
+<Step title="Create Categorias Table">
+
+```sql
+CREATE TABLE categorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL UNIQUE,
+    descripcion TEXT,
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_nombre (nombre),
+    INDEX idx_activo (activo)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+</Step>
+
+<Step title="Create Subcategorias Table">
+
+```sql
+CREATE TABLE subcategorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    categoria_id INT NOT NULL,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion TEXT,
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE,
+    INDEX idx_categoria (categoria_id),
+    INDEX idx_nombre (nombre)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+</Step>
+
+<Step title="Create Proveedores Table">
+
+```sql
+CREATE TABLE proveedores (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    contacto VARCHAR(100),
+    telefono VARCHAR(20),
+    email VARCHAR(100),
+    direccion VARCHAR(255),
+    ciudad VARCHAR(100),
+    pais VARCHAR(100),
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_nombre (nombre),
+    INDEX idx_activo (activo)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+</Step>
+
+<Step title="Create Parametros Table">
+
+```sql
+CREATE TABLE parametros (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tipo VARCHAR(50) NOT NULL,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion TEXT,
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_tipo (tipo),
+    INDEX idx_nombre (nombre)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+This table stores system parameters like movement concepts and inventory types.
+
+</Step>
+
+<Step title="Create Productos Table (Optional)">
+
+```sql
+CREATE TABLE productos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    codigo VARCHAR(50) NOT NULL UNIQUE,
+    nombre VARCHAR(200) NOT NULL,
+    descripcion TEXT,
+    categoria_id INT,
+    subcategoria_id INT,
+    bodega_id INT,
+    proveedor_id INT,
+    precio_compra DECIMAL(10,2),
+    precio_venta DECIMAL(10,2),
+    stock_actual INT DEFAULT 0,
+    stock_minimo INT DEFAULT 0,
+    stock_maximo INT DEFAULT 0,
+    fecha_vencimiento DATE,
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE SET NULL,
+    FOREIGN KEY (subcategoria_id) REFERENCES subcategorias(id) ON DELETE SET NULL,
+    FOREIGN KEY (bodega_id) REFERENCES bodegas(id) ON DELETE RESTRICT,
+    FOREIGN KEY (proveedor_id) REFERENCES proveedores(id) ON DELETE SET NULL,
+    INDEX idx_codigo (codigo),
+    INDEX idx_nombre (nombre),
+    INDEX idx_categoria (categoria_id),
+    INDEX idx_bodega (bodega_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+</Step>
+
+<Step title="Verify Tables">
+
+Check that all tables were created:
+
+```sql
+SHOW TABLES;
+```
+
+View table structure:
+
+```sql
+DESCRIBE usuarios;
+DESCRIBE bodegas;
+DESCRIBE categorias;
+```
+
+</Step>
+
+</Steps>
+
+## Connection Configuration
+
+<Steps>
+
+<Step title="Locate Connection File">
+
+The database connection is configured in `database/conexion.php`:
+
+```php
+<?php
+
+$host = "localhost";
+$user = "root";
+$pass = "";
+$db = "prostocktool";
+
+$conn = new mysqli($host, $user, $pass, $db);
+if ($conn->connect_errno) {
+    http_response_code(500);
+    echo json_encode(["error" => "Error de conexión a la base de datos"]);
+    exit;
+}
+?>
+```
+
+</Step>
+
+<Step title="Update Credentials">
+
+Update the connection parameters with your database credentials:
+
+```php
+<?php
+
+$host = "localhost";              // Database host
+$user = "prostockuser";           // Database user
+$pass = "your_secure_password";   // Database password
+$db = "prostocktool";             // Database name
+
+$conn = new mysqli($host, $user, $pass, $db);
+$conn->set_charset("utf8mb4");    // Ensure UTF-8 encoding
+
+if ($conn->connect_errno) {
+    http_response_code(500);
+    echo json_encode(["error" => "Error de conexión a la base de datos"]);
+    exit;
+}
+?>
+```
+
+<Warning>
+Never commit database credentials to version control. Use environment variables or a separate config file that is gitignored.
+</Warning>
+
+</Step>
+
+<Step title="Test Connection">
+
+Create a test file `test-db.php` in your web root:
+
+```php
+<?php
+require 'database/conexion.php';
+
+$result = $conn->query("SELECT 'Connection successful!' as message");
+if ($result) {
+    $row = $result->fetch_assoc();
+    echo json_encode(['success' => true, 'message' => $row['message']]);
+} else {
+    echo json_encode(['success' => false, 'error' => $conn->error]);
+}
+$conn->close();
+?>
+```
+
+Visit `http://prostocktool.local/test-db.php` and you should see:
+```json
+{"success":true,"message":"Connection successful!"}
+```
+
+<Note>
+Delete `test-db.php` after verification.
+</Note>
+
+</Step>
+
+</Steps>
+
+## Environment-Based Configuration
+
+For better security, use environment-based configuration:
+
+<Steps>
+
+<Step title="Create .env File">
+
+Create a `.env` file in your project root:
+
+```bash
+DB_HOST=localhost
+DB_USER=prostockuser
+DB_PASS=your_secure_password
+DB_NAME=prostocktool
+```
+
+Add `.env` to `.gitignore`:
+
+```bash
+echo ".env" >> .gitignore
+```
+
+</Step>
+
+<Step title="Update conexion.php">
+
+```php
+<?php
+
+// Load environment variables
+function loadEnv($path) {
+    if (!file_exists($path)) return;
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
+            list($key, $value) = explode('=', $line, 2);
+            $_ENV[trim($key)] = trim($value);
+        }
+    }
+}
+
+loadEnv(__DIR__ . '/../.env');
+
+$host = $_ENV['DB_HOST'] ?? 'localhost';
+$user = $_ENV['DB_USER'] ?? 'root';
+$pass = $_ENV['DB_PASS'] ?? '';
+$db = $_ENV['DB_NAME'] ?? 'prostocktool';
+
+$conn = new mysqli($host, $user, $pass, $db);
+$conn->set_charset("utf8mb4");
+
+if ($conn->connect_errno) {
+    http_response_code(500);
+    echo json_encode(["error" => "Error de conexión a la base de datos"]);
+    exit;
+}
+?>
+```
+
+</Step>
+
+</Steps>
+
+## Database Optimization
+
+### Indexing Strategy
+
+Pro Stock Tool tables include indexes on frequently queried columns:
+
+- **usuarios**: `email`, `identidad`
+- **bodegas**: `nombre`
+- **categorias**: `nombre`, `activo`
+- **productos**: `codigo`, `nombre`, `categoria_id`, `bodega_id`
+
+### Query Optimization Tips
+
+1. **Use prepared statements** for user input:
+   ```php
+   $stmt = $conn->prepare("SELECT * FROM usuarios WHERE email = ?");
+   $stmt->bind_param("s", $email);
+   $stmt->execute();
+   ```
+
+2. **Limit result sets**:
+   ```sql
+   SELECT * FROM productos LIMIT 100;
+   ```
+
+3. **Use specific columns** instead of `SELECT *`:
+   ```sql
+   SELECT id, nombre, email FROM usuarios;
+   ```
+
+### Database Backup
+
+Regular backups are essential:
+
+```bash
+# Full database backup
+mysqldump -u root -p prostocktool > prostocktool_backup_$(date +%Y%m%d).sql
+
+# Backup specific tables
+mysqldump -u root -p prostocktool usuarios bodegas > backup.sql
+
+# Restore from backup
+mysql -u root -p prostocktool < prostocktool_backup_20260303.sql
+```
+
+## MySQL Configuration
+
+Optimize MySQL settings in `/etc/mysql/my.cnf` or `/etc/my.cnf`:
+
+```ini
+[mysqld]
+# Connection settings
+max_connections = 100
+wait_timeout = 600
+
+# Buffer pool size (set to 70-80% of RAM for dedicated DB server)
+innodb_buffer_pool_size = 1G
+
+# Query cache (MySQL 5.7 only)
+query_cache_type = 1
+query_cache_size = 64M
+
+# Logging
+log_error = /var/log/mysql/error.log
+slow_query_log = 1
+slow_query_log_file = /var/log/mysql/slow.log
+long_query_time = 2
+
+# Character set
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+```
+
+Restart MySQL after changes:
+
+```bash
+sudo systemctl restart mysql
+```
+
+## Troubleshooting
+
+### Connection Refused
+
+Check if MySQL is running:
+
+```bash
+sudo systemctl status mysql
+```
+
+Start if stopped:
+
+```bash
+sudo systemctl start mysql
+```
+
+### Access Denied
+
+Verify user privileges:
+
+```sql
+SHOW GRANTS FOR 'prostockuser'@'localhost';
+```
+
+Reset user password:
+
+```sql
+ALTER USER 'prostockuser'@'localhost' IDENTIFIED BY 'new_password';
+FLUSH PRIVILEGES;
+```
+
+### Character Encoding Issues
+
+Verify database charset:
+
+```sql
+SHOW VARIABLES LIKE 'character_set%';
+SHOW VARIABLES LIKE 'collation%';
+```
+
+Convert existing tables:
+
+```sql
+ALTER TABLE usuarios CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+### Foreign Key Constraints
+
+If you get foreign key errors when deleting:
+
+```sql
+-- Temporarily disable foreign key checks
+SET FOREIGN_KEY_CHECKS = 0;
+-- Perform operations
+SET FOREIGN_KEY_CHECKS = 1;
+```
+
+## Security Best Practices
+
+<Warning>
+Follow these security guidelines for production databases:
+</Warning>
+
+1. **Use strong passwords**: 16+ characters with mixed case, numbers, and symbols
+2. **Limit user privileges**: Grant only necessary permissions
+3. **Disable remote root**: Never allow root login from remote hosts
+4. **Use SSL/TLS**: Encrypt database connections
+5. **Regular backups**: Automate daily backups
+6. **Update regularly**: Keep MySQL updated with security patches
+7. **Monitor logs**: Check error and slow query logs regularly
+8. **Use prepared statements**: Prevent SQL injection attacks
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Frontend Setup" icon="browser" href="/guides/frontend-setup">
+    Configure frontend files and structure
+  </Card>
+  <Card title="Server Setup" icon="server" href="/guides/server-setup">
+    Return to server configuration
+  </Card>
+</CardGroup>

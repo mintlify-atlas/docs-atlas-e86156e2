@@ -1,0 +1,395 @@
+---
+title: Subcategories API
+description: Manage product subcategories within categories
+---
+
+## Endpoint
+
+```
+/database/subcategorias.php
+```
+
+## Get All Subcategories
+
+Retrieve all subcategories or filter by category.
+
+### Get All Subcategories
+
+```bash
+curl -X GET https://your-domain.com/database/subcategorias.php
+```
+
+### Get Subcategories by Category
+
+```bash
+curl -X GET "https://your-domain.com/database/subcategorias.php?categoria_id=3"
+```
+
+### Query Parameters
+
+<ParamField query="categoria_id" type="integer">
+  Filter subcategories by parent category ID
+</ParamField>
+
+### Response
+
+<ResponseExample>
+```json Success - All Subcategories
+{
+  "success": true,
+  "data": [
+    {
+      "id": 5,
+      "categoria_id": 3,
+      "nombre": "Smartphones",
+      "descripcion": "Teléfonos inteligentes",
+      "color": "#2e6df6",
+      "estado": "ACTIVO",
+      "fecha_creacion": "2026-03-02 09:15:00",
+      "fecha_actualizacion": null
+    },
+    {
+      "id": 4,
+      "categoria_id": 3,
+      "nombre": "Laptops",
+      "descripcion": "Computadoras portátiles",
+      "color": "#1abc9c",
+      "estado": "ACTIVO",
+      "fecha_creacion": "2026-03-01 16:20:00",
+      "fecha_actualizacion": null
+    }
+  ]
+}
+```
+
+```json Success - Filtered by Category
+{
+  "success": true,
+  "data": [
+    {
+      "id": 5,
+      "categoria_id": 3,
+      "nombre": "Smartphones",
+      "descripcion": "Teléfonos inteligentes",
+      "color": "#2e6df6",
+      "estado": "ACTIVO",
+      "fecha_creacion": "2026-03-02 09:15:00",
+      "fecha_actualizacion": null
+    }
+  ]
+}
+```
+</ResponseExample>
+
+### Response Fields
+
+<ResponseField name="id" type="integer">
+  Unique subcategory identifier
+</ResponseField>
+
+<ResponseField name="categoria_id" type="integer">
+  Parent category ID
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  Subcategory name (max 50 characters)
+</ResponseField>
+
+<ResponseField name="descripcion" type="string">
+  Subcategory description (max 200 characters)
+</ResponseField>
+
+<ResponseField name="color" type="string">
+  Hex color code for UI display
+</ResponseField>
+
+<ResponseField name="estado" type="string">
+  Subcategory status
+</ResponseField>
+
+<ResponseField name="fecha_creacion" type="datetime">
+  Creation timestamp
+</ResponseField>
+
+<ResponseField name="fecha_actualizacion" type="datetime">
+  Last update timestamp (null if never updated)
+</ResponseField>
+
+---
+
+## Create Subcategory
+
+Create a new subcategory within a category.
+
+```bash
+curl -X POST https://your-domain.com/database/subcategorias.php \
+  -H "Content-Type: application/json" \
+  -d '{
+    "categoria_id": 3,
+    "nombre": "Smartphones",
+    "descripcion": "Teléfonos inteligentes",
+    "color": "#2e6df6",
+    "estado": "ACTIVO"
+  }'
+```
+
+### Request Parameters
+
+<ParamField body="categoria_id" type="integer" required>
+  Parent category ID (must be greater than 0 and exist)
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  Subcategory name (max 50 characters, unique within category)
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Subcategory description (max 200 characters)
+</ParamField>
+
+<ParamField body="color" type="string" default="#2e6df6">
+  Hex color code for UI display
+</ParamField>
+
+<ParamField body="estado" type="string" default="ACTIVO">
+  Subcategory status
+</ParamField>
+
+### Validation Rules
+
+- **categoria_id**: Required, must be greater than 0, category must exist
+- **nombre**: Required, max 50 characters, unique within the same category
+- **descripcion**: Optional, max 200 characters
+- **color**: Optional, defaults to `#2e6df6`
+- **estado**: Optional, defaults to `ACTIVO`
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "id": 6,
+  "message": "Subcategoría creada exitosamente"
+}
+```
+
+```json Error - Invalid Category
+{
+  "success": false,
+  "error": "Categoría inválida"
+}
+```
+
+```json Error - Category Not Found
+{
+  "success": false,
+  "error": "Categoría no encontrada"
+}
+```
+
+```json Error - Missing Name
+{
+  "success": false,
+  "error": "El nombre es obligatorio"
+}
+```
+
+```json Error - Name Too Long
+{
+  "success": false,
+  "error": "El nombre no puede superar 50 caracteres"
+}
+```
+
+```json Error - Description Too Long
+{
+  "success": false,
+  "error": "La descripción no puede superar 200 caracteres"
+}
+```
+
+```json Error - Duplicate Name
+{
+  "success": false,
+  "error": "Ya existe una subcategoría con este nombre en esta categoría"
+}
+```
+</ResponseExample>
+
+<Note>
+  Subcategory names must be unique **within the same category**. You can have the same subcategory name in different categories.
+</Note>
+
+---
+
+## Update Subcategory
+
+Update an existing subcategory's information.
+
+```bash
+curl -X PUT https://your-domain.com/database/subcategorias.php \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": 6,
+    "nombre": "Smartphones Premium",
+    "descripcion": "Teléfonos de alta gama",
+    "color": "#9b59b6",
+    "estado": "ACTIVO"
+  }'
+```
+
+### Request Parameters
+
+<ParamField body="id" type="integer" required>
+  Subcategory ID to update (must be greater than 0)
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  New subcategory name (max 50 characters)
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  New description (max 200 characters)
+</ParamField>
+
+<ParamField body="color" type="string" default="#2e6df6">
+  New color code
+</ParamField>
+
+<ParamField body="estado" type="string" default="ACTIVO">
+  New status
+</ParamField>
+
+### Validation Rules
+
+- **id**: Required, must be greater than 0, subcategory must exist
+- **nombre**: Required, max 50 characters, unique within category (excluding current)
+- **descripcion**: Optional, max 200 characters
+- Cannot change `categoria_id` (parent category)
+- Updates `fecha_actualizacion` timestamp automatically
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "message": "Subcategoría actualizada exitosamente"
+}
+```
+
+```json Error - Not Found
+{
+  "success": false,
+  "error": "Subcategoría no encontrada"
+}
+```
+
+```json Error - Duplicate Name
+{
+  "success": false,
+  "error": "Ya existe otra subcategoría con este nombre en esta categoría"
+}
+```
+</ResponseExample>
+
+<Warning>
+  You cannot change the parent category of a subcategory. If you need to move a subcategory to a different category, delete it and create a new one.
+</Warning>
+
+---
+
+## Delete Subcategory
+
+Delete a subcategory from the system.
+
+```bash
+curl -X DELETE https://your-domain.com/database/subcategorias.php \
+  -H "Content-Type: application/json" \
+  -d '{"id": 6}'
+```
+
+### Request Parameters
+
+<ParamField body="id" type="integer" required>
+  Subcategory ID to delete (must be greater than 0)
+</ParamField>
+
+### Validation Rules
+
+- **id**: Required, must be greater than 0, subcategory must exist
+- Cannot delete if subcategory has associated products
+- Checks `productos` table for `subcategoria_id` foreign key
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "message": "Subcategoría eliminada exitosamente"
+}
+```
+
+```json Error - Invalid ID
+{
+  "success": false,
+  "error": "ID inválido"
+}
+```
+
+```json Error - Not Found
+{
+  "success": false,
+  "error": "Subcategoría no encontrada"
+}
+```
+
+```json Error - Has Products
+{
+  "success": false,
+  "error": "No se puede eliminar. Tiene 18 producto(s) asociado(s)"
+}
+```
+</ResponseExample>
+
+<Warning>
+  Deleting a subcategory is prevented if it has associated products. You must reassign or delete the products first.
+</Warning>
+
+---
+
+## Database Schema
+
+Subcategories are stored in the `subcategorias` table:
+
+```sql
+CREATE TABLE subcategorias (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  categoria_id INT NOT NULL,
+  nombre VARCHAR(50) NOT NULL,
+  descripcion VARCHAR(200),
+  color VARCHAR(7) DEFAULT '#2e6df6',
+  estado VARCHAR(20) DEFAULT 'ACTIVO',
+  fecha_creacion DATETIME,
+  fecha_actualizacion DATETIME,
+  FOREIGN KEY (categoria_id) REFERENCES categorias(id),
+  UNIQUE KEY unique_nombre_per_categoria (categoria_id, nombre)
+);
+```
+
+## Error Codes
+
+| Error Message | Cause | Solution |
+|---------------|-------|----------|
+| `Datos inválidos` | Invalid JSON | Check JSON syntax |
+| `Categoría inválida` | Invalid categoria_id | Provide valid category ID |
+| `Categoría no encontrada` | Category doesn't exist | Check category exists |
+| `El nombre es obligatorio` | Missing nombre | Include nombre in request |
+| `El nombre no puede superar 50 caracteres` | Name too long | Shorten subcategory name |
+| `La descripción no puede superar 200 caracteres` | Description too long | Shorten description |
+| `Ya existe una subcategoría con este nombre en esta categoría` | Duplicate within category | Use different name or different category |
+| `ID inválido` | Invalid ID | Provide valid ID > 0 |
+| `Subcategoría no encontrada` | Subcategory doesn't exist | Check subcategory ID |
+| `No se puede eliminar. Tiene X producto(s) asociado(s)` | Has products | Remove products first |

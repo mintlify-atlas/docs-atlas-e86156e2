@@ -1,0 +1,629 @@
+---
+title: "Product Rotation & Expiration Tracking"
+description: "Monitor product rotation, track expiration dates, and ensure FIFO/FEFO compliance to minimize waste and maintain product quality"
+---
+
+## Overview
+
+Product rotation tracking ensures that inventory is used in the correct order to minimize waste, maintain product quality, and comply with industry regulations. Pro Stock Tool provides comprehensive tools for managing product rotation, tracking expiration dates, and identifying products requiring immediate attention.
+
+<Info>
+  Proper rotation management is critical for perishable goods, pharmaceuticals, electronics, and any products with limited shelf life or date-sensitive compliance requirements.
+</Info>
+
+## Rotation Methods
+
+<CardGroup cols={2}>
+  <Card title="FIFO" icon="arrow-right-arrow-left">
+    **First In, First Out**
+    
+    Products received first are sold or used first. Ideal for most inventory scenarios to prevent aging stock.
+  </Card>
+  
+  <Card title="FEFO" icon="calendar-xmark">
+    **First Expired, First Out**
+    
+    Products with earliest expiration dates are prioritized. Essential for perishables and dated products.
+  </Card>
+  
+  <Card title="LIFO" icon="layer-group">
+    **Last In, First Out**
+    
+    Most recently received products are used first. Used in specific accounting or material scenarios.
+  </Card>
+  
+  <Card title="Lote Tracking" icon="barcode">
+    **Batch/Lot Tracking**
+    
+    Track individual batches for quality control, recalls, and detailed traceability.
+  </Card>
+</CardGroup>
+
+## Expiration Date Management
+
+### Setting Up Expiration Tracking
+
+Configure products with expiration monitoring:
+
+<Steps>
+  <Step title="Enable Expiration Tracking">
+    In product configuration:
+    
+    <ResponseField name="track_expiration" type="boolean" default="false">
+      Enable expiration date tracking for this product
+    </ResponseField>
+    
+    <ResponseField name="shelf_life_days" type="number">
+      Default shelf life in days from receipt date
+    </ResponseField>
+    
+    <ResponseField name="warning_days" type="number" default="30">
+      Days before expiration to trigger warnings
+    </ResponseField>
+    
+    <ResponseField name="critical_days" type="number" default="7">
+      Days before expiration for critical alerts
+    </ResponseField>
+  </Step>
+  
+  <Step title="Record Expiration Dates">
+    When receiving products:
+    - Scan or enter expiration date from packaging
+    - System calculates expiration date if only manufacture date provided
+    - Assigns lot/batch number for tracking
+    - Links expiration to specific warehouse location
+  </Step>
+  
+  <Step title="Monitor Alerts">
+    System automatically generates:
+    - **Green**: Products with >90 days until expiration
+    - **Yellow**: Products within warning threshold (30 days)
+    - **Orange**: Products nearing expiration (7-14 days)
+    - **Red**: Products expiring within 7 days or expired
+  </Step>
+</Steps>
+
+### Expiration Date Entry
+
+```javascript
+// Product Entry with Expiration Data
+const productEntry = {
+  product_id: 456,
+  product_name: "Organic Milk 1L",
+  quantity: 48,
+  warehouse_id: 1,
+  
+  // Expiration tracking
+  expiration_tracking: true,
+  batch_number: "LOT-2026-0342-A",
+  manufacture_date: "2026-02-28",
+  expiration_date: "2026-03-21",  // 21 days shelf life
+  
+  // Auto-calculated
+  days_until_expiration: 18,
+  alert_level: "warning",  // Yellow alert
+  
+  // Rotation priority
+  fifo_priority: 3,  // Third oldest batch in stock
+  fefo_priority: 1,  // Earliest expiration - ship first
+  
+  // Storage location
+  location: "Refrigerador-A-Shelf-2",
+  rotation_enabled: true
+}
+```
+
+## Rotation Reports
+
+### Near Expiration Report
+
+Identify products requiring immediate action:
+
+<Tabs>
+  <Tab title="Critical (0-7 days)">
+    **Immediate Action Required**
+    
+    | Product | Batch | Qty | Expires | Days | Action |
+    |---------|-------|-----|---------|------|--------|
+    | Yogurt Natural 500g | LOT-A342 | 24 | 2026-03-05 | 2 | **Urgent Sale** |
+    | Queso Fresco 400g | LOT-B156 | 12 | 2026-03-06 | 3 | Discount 50% |
+    | Pan Integral | LOT-C789 | 36 | 2026-03-08 | 5 | Promotional |
+    | Jugos Naturales | LOT-D234 | 18 | 2026-03-09 | 6 | Bundle Deal |
+    
+    <Warning>
+      **Critical items require immediate action**: Apply aggressive discounts, create promotions, or prepare for disposal if unsold.
+    </Warning>
+  </Tab>
+  
+  <Tab title="Warning (8-30 days)">
+    **Plan Sales Strategy**
+    
+    | Product | Batch | Qty | Expires | Days | Suggested Action |
+    |---------|-------|-----|---------|------|------------------|
+    | Leche Entera 1L | LOT-E445 | 72 | 2026-03-15 | 12 | Feature in promotions |
+    | Mantequilla 250g | LOT-F667 | 48 | 2026-03-20 | 17 | Normal sales flow |
+    | Crema de Leche | LOT-G889 | 36 | 2026-03-25 | 22 | Monitor weekly |
+    | Huevos Orgánicos | LOT-H123 | 60 | 2026-04-01 | 29 | Standard rotation |
+    
+    <Tip>
+      Products in warning zone should be prioritized in normal sales channels. Consider strategic placement and gentle promotional support.
+    </Tip>
+  </Tab>
+  
+  <Tab title="Normal (>30 days)">
+    **Standard Inventory**
+    
+    Products with sufficient time before expiration:
+    - Continue normal rotation procedures
+    - Monitor for changes in sales velocity
+    - Plan replenishment based on consumption rates
+    - No special action required
+    
+    **Total products in normal status**: 1,247 items across 342 SKUs
+  </Tab>
+</Tabs>
+
+### FIFO Compliance Report
+
+Verify that oldest products are being sold first:
+
+<AccordionGroup>
+  <Accordion title="Compliance Score" icon="percent">
+    **Overall FIFO Compliance: 94%**
+    
+    Calculation based on:
+    - Products shipped in correct age order
+    - Violations (newer stock sold before older)
+    - Exception rate for valid business reasons
+    
+    **Breakdown by Category:**
+    - **Perecederos**: 98% (Excellent)
+    - **Electrónicos**: 91% (Good)
+    - **Textiles**: 88% (Needs Improvement)
+    - **Otros**: 85% (Review Required)
+  </Accordion>
+  
+  <Accordion title="Violation Details" icon="triangle-exclamation">
+    **Recent FIFO Violations:**
+    
+    | Date | Product | Issue | Impact | Resolution |
+    |------|---------|-------|--------|------------|
+    | 03/02 | Laptop X200 | Newer unit shipped | Low | Training reminder |
+    | 03/01 | Monitor 24" | Location mix-up | Medium | Process update |
+    | 02/28 | Cable HDMI | Picking error | Low | Staff coaching |
+    
+    <Note>
+      Review violations weekly and address patterns through training, process improvements, or warehouse layout optimization.
+    </Note>
+  </Accordion>
+  
+  <Accordion title="Best Performing Warehouses" icon="trophy">
+    **FIFO Compliance by Location:**
+    
+    1. **Bodega Central**: 97% - Excellent process adherence
+    2. **Bodega Norte**: 95% - Strong performance
+    3. **Bodega Sur**: 92% - Good compliance
+    4. **Bodega Este**: 89% - Needs attention
+    
+    **Success Factors:**
+    - Clear location labeling with dates
+    - Staff training on rotation importance
+    - Regular compliance audits
+    - Efficient warehouse layout
+  </Accordion>
+</AccordionGroup>
+
+## Batch and Lot Tracking
+
+### Batch Management
+
+Track products by manufacturing batch for quality and recall management:
+
+<ResponseField name="Batch Record">
+  ```json
+  {
+    "batch_id": "LOT-2026-0342-A",
+    "product_id": 789,
+    "product_name": "Vitamina C 1000mg",
+    "manufacturer": "PharmaCorp S.A.",
+    
+    "production_info": {
+      "manufacture_date": "2026-02-15",
+      "expiration_date": "2028-02-15",
+      "production_facility": "Plant-03-Mexico"
+    },
+    
+    "quantity_info": {
+      "original_quantity": 500,
+      "current_quantity": 342,
+      "sold_quantity": 158,
+      "warehouses": [
+        {"warehouse_id": 1, "quantity": 200},
+        {"warehouse_id": 3, "quantity": 142}
+      ]
+    },
+    
+    "quality_control": {
+      "inspection_date": "2026-02-16",
+      "inspector": "Quality Team",
+      "status": "approved",
+      "certificates": ["COA-2026-0342", "GMP-Certified"]
+    },
+    
+    "traceability": {
+      "supplier_reference": "SUP-INV-8934",
+      "purchase_order": "PO-2026-0123",
+      "customers_shipped_to": 23,
+      "recall_status": "none"
+    }
+  }
+  ```
+</ResponseField>
+
+### Recall Management
+
+Quickly identify and isolate affected batches:
+
+<Steps>
+  <Step title="Initiate Recall">
+    When a quality issue is identified:
+    - Enter affected batch number(s)
+    - System identifies all locations with the batch
+    - Calculates total quantity in circulation
+    - Lists all customers who received the batch
+  </Step>
+  
+  <Step title="Isolate Product">
+    Immediate actions:
+    - Mark batch as "HOLD - Do Not Ship"
+    - Generate quarantine labels for warehouse
+    - Block affected inventory from sale
+    - Alert warehouse staff via notification
+  </Step>
+  
+  <Step title="Customer Notification">
+    If product already shipped:
+    - Generate customer contact list
+    - Send recall notifications
+    - Track customer responses
+    - Arrange pickup or disposal instructions
+  </Step>
+  
+  <Step title="Documentation">
+    Record complete recall details:
+    - Reason for recall
+    - Quantity affected
+    - Quantity recovered
+    - Disposal method
+    - Financial impact
+    - Preventive measures implemented
+  </Step>
+</Steps>
+
+<Warning>
+  **Batch tracking is essential for regulated industries**. Maintain complete traceability for pharmaceuticals, food products, medical devices, and other controlled items.
+</Warning>
+
+## Rotation Optimization Strategies
+
+### Warehouse Layout for Rotation
+
+<CardGroup cols={2}>
+  <Card title="Zone-Based Storage" icon="th">
+    **Organization Method:**
+    
+    Divide warehouse into rotation zones:
+    - **Zone A**: Products expiring 0-30 days
+    - **Zone B**: Products expiring 31-90 days
+    - **Zone C**: Products expiring 91-180 days
+    - **Zone D**: Products expiring >180 days
+    
+    Benefits:
+    - Visual identification of aging stock
+    - Simplified picking procedures
+    - Reduced rotation errors
+  </Card>
+  
+  <Card title="Date-Based Shelving" icon="calendar-days">
+    **Arrangement System:**
+    
+    Organize products by receipt/expiration date:
+    - Front positions: Oldest/earliest expiration
+    - Back positions: Newest/latest expiration
+    - Clear date labels on all positions
+    - Colored markers for urgency levels
+    
+    Benefits:
+    - Intuitive FIFO compliance
+    - Easy visual inspection
+    - Quick expiration verification
+  </Card>
+</CardGroup>
+
+### Automated Rotation Alerts
+
+Configure intelligent notifications:
+
+<Tabs>
+  <Tab title="Daily Alerts">
+    **Morning Rotation Checklist** (sent at 8:00 AM):
+    
+    1. **Expired Yesterday**: Products that expired in last 24 hours
+    2. **Expiring Today**: Items reaching expiration date
+    3. **Critical This Week**: Products expiring in next 7 days
+    4. **FIFO Violations**: Recent incorrect rotation incidents
+    5. **Low Rotation Items**: Products not moving as expected
+    
+    Recipients: Warehouse managers, inventory team
+  </Tab>
+  
+  <Tab title="Weekly Summary">
+    **Monday Rotation Report** (sent Monday 9:00 AM):
+    
+    - Total products in each expiration zone
+    - Waste from previous week
+    - FIFO compliance score trends
+    - Upcoming expiration concerns
+    - Recommended promotional items
+    - Batch status updates
+    
+    Recipients: Operations management, purchasing team
+  </Tab>
+  
+  <Tab title="Custom Alerts">
+    **Configurable Notifications:**
+    
+    Set up custom alerts for:
+    - Specific product categories
+    - Individual high-value items
+    - Particular warehouses or zones
+    - Threshold quantities in each age bracket
+    - Supplier-specific batches
+    
+    Delivery options:
+    - Email notifications
+    - SMS for critical alerts
+    - In-app dashboard badges
+    - Webhook to external systems
+  </Tab>
+</Tabs>
+
+## Waste Reduction Strategies
+
+### Preventing Expiration Waste
+
+<AccordionGroup>
+  <Accordion title="Dynamic Pricing" icon="tags">
+    Implement automated discount schedules based on days until expiration:
+    
+    | Days to Expiration | Discount | Display |
+    |--------------------|----------|----------|
+    | 60-90 days | 0% | Regular price |
+    | 30-59 days | 10% | "Fresh deals" |
+    | 15-29 days | 20% | "Quick sale" |
+    | 8-14 days | 35% | "Manager's special" |
+    | 1-7 days | 50% | "Last chance" |
+    | Same day | 75% | "Flash sale" |
+    
+    <Tip>
+      Automatic pricing adjustments encourage sales before expiration while maintaining profitability.
+    </Tip>
+  </Accordion>
+  
+  <Accordion title="Demand Forecasting" icon="chart-line">
+    Use historical data to optimize order quantities:
+    
+    - Analyze sales velocity by product
+    - Factor in seasonal patterns
+    - Account for shelf life constraints
+    - Adjust order quantities to match consumption
+    - Coordinate with suppliers for smaller, more frequent deliveries
+    
+    **Impact**: Reduce overstock and improve turnover rates
+  </Accordion>
+  
+  <Accordion title="Product Bundling" icon="box">
+    Create strategic bundles with near-expiration items:
+    
+    **Bundle Strategies:**
+    - Pair fast-moving with slow-moving items
+    - Combine complementary products
+    - Create meal kits or project bundles
+    - Offer "mystery boxes" at deep discounts
+    - Design seasonal or themed combinations
+    
+    **Example**: Bundle yogurt (expiring in 5 days) + granola (long shelf life) at attractive price
+  </Accordion>
+  
+  <Accordion title="Donation Programs" icon="hand-holding-heart">
+    Partner with food banks and charities:
+    
+    - Identify products suitable for donation (still safe, approaching expiration)
+    - Establish relationships with local organizations
+    - Coordinate regular pickup schedules
+    - Document donations for tax benefits
+    - Track social impact metrics
+    
+    **Benefits**: Reduce waste, support community, potential tax deductions
+  </Accordion>
+</AccordionGroup>
+
+## Rotation Analytics
+
+### Key Performance Indicators
+
+<CardGroup cols={3}>
+  <Card title="Waste Rate" icon="trash">
+    **2.3%** of inventory
+    
+    ↓ 0.8% vs last month
+    
+    Target: &lt;2%
+  </Card>
+  
+  <Card title="Average Age" icon="clock">
+    **34 days** average inventory age
+    
+    ↓ 5 days vs last month
+    
+    Target: &lt;45 days
+  </Card>
+  
+  <Card title="FEFO Compliance" icon="check-circle">
+    **96%** compliance rate
+    
+    ↑ 2% vs last month
+    
+    Target: >95%
+  </Card>
+</CardGroup>
+
+### Rotation Velocity Analysis
+
+Understand how quickly products move through inventory:
+
+```javascript
+// Product Rotation Metrics
+const rotationMetrics = {
+  product_id: 234,
+  product_name: "Smartphone Model X",
+  
+  // Velocity metrics
+  average_days_in_stock: 28,
+  fastest_rotation: 14,  // Days for fastest-moving unit
+  slowest_rotation: 62,  // Days for slowest-moving unit
+  
+  // Turnover
+  monthly_turnover_rate: 3.2,  // Inventory turns over 3.2x per month
+  annual_turnover_rate: 38.4,
+  
+  // Age distribution
+  age_distribution: {
+    "0-30_days": 65,    // 65% of stock is under 30 days old
+    "31-60_days": 28,   // 28% is 31-60 days old
+    "61-90_days": 5,    // 5% is 61-90 days old
+    "90+_days": 2       // 2% is over 90 days old
+  },
+  
+  // Recommendations
+  status: "healthy",
+  notes: "Good rotation velocity. Minor tail of aging stock to monitor."
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Daily Rotation Checks" icon="calendar-check">
+    **Morning Routine (15 minutes):**
+    
+    1. Review overnight expiration alerts
+    2. Check products expiring in next 7 days
+    3. Verify yesterday's shipments followed FIFO
+    4. Identify any new FEFO priority items
+    5. Update rotation zone assignments if needed
+    6. Brief picking team on priority items
+    
+    **Impact**: Catches issues early and maintains awareness
+  </Accordion>
+  
+  <Accordion title="Staff Training" icon="graduation-cap">
+    **Essential Training Topics:**
+    
+    - Why rotation matters (waste, quality, compliance)
+    - How to read date codes and expiration labels
+    - FIFO vs FEFO: when to use each method
+    - Proper picking procedures from shelves
+    - How to use rotation alerts in the system
+    - What to do when finding expired products
+    - Batch/lot number importance for traceability
+    
+    **Training Schedule**: Initial onboarding + quarterly refreshers
+  </Accordion>
+  
+  <Accordion title="Physical Layout Optimization" icon="warehouse">
+    **Design Principles:**
+    
+    - Position high-rotation items near shipping area
+    - Ensure clear visibility of expiration dates
+    - Implement color-coded zones by expiration range
+    - Create dedicated "urgent sale" area for near-expiration
+    - Use gravity-feed shelving for automatic FIFO
+    - Maintain clear aisle access for stock rotation
+    - Install adequate lighting for date verification
+  </Accordion>
+  
+  <Accordion title="Technology Integration" icon="microchip">
+    **System Enhancements:**
+    
+    - Barcode scanning with automatic date capture
+    - Handheld devices showing rotation priority
+    - Visual dashboards in warehouse areas
+    - Automated alerts sent to mobile devices
+    - Integration with POS for dynamic pricing
+    - RFID tags for automatic batch tracking
+    - Mobile app for instant expiration checks
+  </Accordion>
+</AccordionGroup>
+
+## Regulatory Compliance
+
+### Industry-Specific Requirements
+
+<Tabs>
+  <Tab title="Food & Beverage">
+    **Compliance Requirements:**
+    
+    - Maintain complete batch traceability
+    - Record temperature monitoring data
+    - Document FEFO compliance
+    - Track "use by" vs "best before" dates
+    - Maintain cleaning and sanitation logs
+    - Implement allergen segregation
+    
+    **Regulations**: FDA Food Safety Modernization Act (FSMA), local health codes
+  </Tab>
+  
+  <Tab title="Pharmaceuticals">
+    **Compliance Requirements:**
+    
+    - Complete chain of custody documentation
+    - Temperature and humidity monitoring
+    - Quarantine procedures for suspect batches
+    - Serialization and track-and-trace
+    - Recall readiness with 24-hour response
+    - Proper disposal documentation for expired items
+    
+    **Regulations**: FDA 21 CFR Part 11, Drug Supply Chain Security Act (DSCSA)
+  </Tab>
+  
+  <Tab title="Electronics">
+    **Compliance Requirements:**
+    
+    - Manufacturing date tracking
+    - Warranty period monitoring
+    - Batch tracking for firmware versions
+    - Component obsolescence management
+    - Environmental condition logging
+    - RoHS and WEEE compliance documentation
+    
+    **Regulations**: Industry-specific standards, manufacturer requirements
+  </Tab>
+</Tabs>
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Inventory Reports" icon="chart-bar" href="/reports/inventory-reports">
+    Generate comprehensive stock level and warehouse reports
+  </Card>
+  <Card title="Movement Tracking" icon="truck" href="/reports/movement-tracking">
+    Monitor product entries, exits, and transfers
+  </Card>
+  <Card title="Product Management" icon="box" href="/features/product-management">
+    Configure products with expiration tracking settings
+  </Card>
+  <Card title="Warehouse Management" icon="warehouse" href="/features/warehouse-management">
+    Optimize warehouse layout for rotation efficiency
+  </Card>
+</CardGroup>

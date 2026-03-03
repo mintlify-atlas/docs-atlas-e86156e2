@@ -1,0 +1,889 @@
+---
+title: Installation
+description: Detailed installation guide for Pro Stock Tool with production-ready configurations
+---
+
+## Installation Guide
+
+This guide provides comprehensive instructions for installing Pro Stock Tool in both development and production environments.
+
+## System Requirements
+
+### Minimum Requirements
+
+- **PHP**: 7.4 or higher
+- **MySQL**: 5.7 or higher (or MariaDB 10.2+)
+- **Web Server**: Apache 2.4+ or Nginx 1.18+
+- **RAM**: 512 MB minimum (1 GB recommended)
+- **Disk Space**: 100 MB for application files
+- **Browser**: Modern browser with JavaScript enabled
+
+### Required PHP Extensions
+
+```bash
+php -m | grep -E "mysqli|json|mbstring"
+```
+
+Required extensions:
+- `mysqli` - MySQL database connectivity
+- `json` - JSON encoding/decoding
+- `mbstring` - Multibyte string handling
+
+<Warning>
+  Ensure all required PHP extensions are enabled before proceeding with installation.
+</Warning>
+
+## Installation Methods
+
+<Tabs>
+  <Tab title="Development (Local)">
+    ### Development Environment Setup
+
+    <Steps>
+      <Step title="Install XAMPP/WAMP/MAMP (Optional)">
+        For an all-in-one solution, install a pre-packaged stack:
+
+        **XAMPP (Windows/Mac/Linux)**:
+        ```bash
+        # Download from https://www.apachefriends.org/
+        # Install and start Apache and MySQL services
+        ```
+
+        **Or install components separately**:
+        ```bash
+        # Ubuntu/Debian
+        sudo apt update
+        sudo apt install php php-mysqli mysql-server apache2
+
+        # macOS (using Homebrew)
+        brew install php mysql
+
+        # Windows
+        # Download PHP from https://windows.php.net/
+        # Download MySQL from https://dev.mysql.com/downloads/
+        ```
+      </Step>
+
+      <Step title="Clone the Project">
+        ```bash
+        # Clone to your web server directory
+        cd /var/www/html  # or C:\xampp\htdocs on Windows
+        git clone <repository-url> Pro-Stock-Tool
+        cd Pro-Stock-Tool
+        ```
+
+        Or download the ZIP and extract:
+        ```bash
+        unzip Pro-Stock-Tool.zip -d /var/www/html/
+        cd /var/www/html/Pro-Stock-Tool
+        ```
+      </Step>
+
+      <Step title="Set File Permissions">
+        ```bash
+        # Linux/macOS
+        chmod -R 755 .
+        chown -R www-data:www-data .
+
+        # Ensure PHP can read all files
+        find . -type f -exec chmod 644 {} \;
+        find . -type d -exec chmod 755 {} \;
+        ```
+      </Step>
+
+      <Step title="Create Database">
+        Access MySQL:
+        ```bash
+        mysql -u root -p
+        ```
+
+        Create the database:
+        ```sql
+        CREATE DATABASE prostocktool CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+        ```
+      </Step>
+
+      <Step title="Import Database Schema">
+        Create the complete database schema:
+
+        ```sql
+        USE prostocktool;
+
+        -- Warehouses table
+        CREATE TABLE bodegas (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          nombre VARCHAR(100) NOT NULL UNIQUE,
+          descripcion TEXT,
+          fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+          fecha_actualizacion DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_nombre (nombre)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        -- Categories table
+        CREATE TABLE categorias (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          nombre VARCHAR(50) NOT NULL UNIQUE,
+          descripcion VARCHAR(200),
+          color VARCHAR(7) DEFAULT '#2e6df6',
+          estado VARCHAR(20) DEFAULT 'ACTIVO',
+          fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+          fecha_actualizacion DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_nombre (nombre),
+          INDEX idx_estado (estado)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        -- Subcategories table
+        CREATE TABLE subcategorias (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          nombre VARCHAR(50) NOT NULL,
+          descripcion VARCHAR(200),
+          categoria_id INT NOT NULL,
+          fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+          fecha_actualizacion DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE CASCADE,
+          INDEX idx_categoria (categoria_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        -- Parameters table (for product states/attributes)
+        CREATE TABLE parametros (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          codigo VARCHAR(10) NOT NULL UNIQUE,
+          nombre VARCHAR(50) NOT NULL UNIQUE,
+          descripcion TEXT,
+          color VARCHAR(7) DEFAULT '#4a90e2',
+          fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+          fecha_actualizacion DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+          INDEX idx_codigo (codigo)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        -- Suppliers table
+        CREATE TABLE proveedores (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          nif VARCHAR(20),
+          nombre VARCHAR(100) NOT NULL,
+          contacto VARCHAR(100),
+          email VARCHAR(100),
+          telefono VARCHAR(20),
+          direccion TEXT,
+          ciudad VARCHAR(100),
+          web VARCHAR(200),
+          terminos INT COMMENT 'Payment terms in days',
+          parametro_id INT,
+          fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+          fecha_actualizacion DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (parametro_id) REFERENCES parametros(id) ON DELETE SET NULL,
+          INDEX idx_nombre (nombre),
+          INDEX idx_email (email)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        -- Users table
+        CREATE TABLE usuarios (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          email VARCHAR(100) NOT NULL UNIQUE,
+          nombre VARCHAR(100) NOT NULL,
+          identidad VARCHAR(20) NOT NULL UNIQUE COMMENT 'National ID or similar',
+          password VARCHAR(255) NOT NULL COMMENT 'Bcrypt hashed password',
+          creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_email (email),
+          INDEX idx_identidad (identidad)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+        -- Products table
+        CREATE TABLE productos (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          nombre VARCHAR(100) NOT NULL,
+          descripcion TEXT,
+          codigo_barras VARCHAR(50),
+          bodega_id INT,
+          categoria_id INT,
+          subcategoria_id INT,
+          proveedor_id INT,
+          parametro_id INT COMMENT 'Current state/status',
+          cantidad_actual DECIMAL(10,2) DEFAULT 0,
+          cantidad_minima DECIMAL(10,2) DEFAULT 0,
+          cantidad_maxima DECIMAL(10,2) DEFAULT 0,
+          precio_compra DECIMAL(10,2),
+          precio_venta DECIMAL(10,2),
+          fecha_vencimiento DATE,
+          fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+          fecha_actualizacion DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+          FOREIGN KEY (bodega_id) REFERENCES bodegas(id) ON DELETE SET NULL,
+          FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE SET NULL,
+          FOREIGN KEY (subcategoria_id) REFERENCES subcategorias(id) ON DELETE SET NULL,
+          FOREIGN KEY (proveedor_id) REFERENCES proveedores(id) ON DELETE SET NULL,
+          FOREIGN KEY (parametro_id) REFERENCES parametros(id) ON DELETE SET NULL,
+          INDEX idx_nombre (nombre),
+          INDEX idx_codigo_barras (codigo_barras),
+          INDEX idx_bodega (bodega_id),
+          INDEX idx_categoria (categoria_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ```
+
+        <Note>
+          The schema uses InnoDB for transaction support and includes indexes for improved query performance.
+        </Note>
+      </Step>
+
+      <Step title="Configure Database Connection">
+        Edit `database/conexion.php`:
+
+        ```php database/conexion.php
+        <?php
+
+        $host = "localhost";
+        $user = "root";
+        $pass = "";
+        $db = "prostocktool";
+
+        $conn = new mysqli($host, $user, $pass, $db);
+        if ($conn->connect_errno) {
+            http_response_code(500);
+            echo json_encode(["error" => "Error de conexión a la base de datos"]);
+            exit;
+        }
+        ?>
+        ```
+      </Step>
+
+      <Step title="Start Development Server">
+        ```bash
+        # Using PHP built-in server
+        php -S localhost:8000
+
+        # Or start Apache/Nginx if already installed
+        sudo service apache2 start
+        sudo service mysql start
+        ```
+
+        Access at: `http://localhost:8000/login.html`
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Production (Server)">
+    ### Production Environment Setup
+
+    <Steps>
+      <Step title="Prepare the Server">
+        Update your system and install required packages:
+
+        ```bash
+        # Ubuntu/Debian
+        sudo apt update
+        sudo apt upgrade
+        sudo apt install apache2 mysql-server php php-mysqli php-json php-mbstring
+
+        # Enable required Apache modules
+        sudo a2enmod rewrite
+        sudo a2enmod headers
+        sudo systemctl restart apache2
+        ```
+
+        **For CentOS/RHEL**:
+        ```bash
+        sudo yum update
+        sudo yum install httpd mysql-server php php-mysqli php-json php-mbstring
+        sudo systemctl enable httpd
+        sudo systemctl enable mysqld
+        sudo systemctl start httpd
+        sudo systemctl start mysqld
+        ```
+      </Step>
+
+      <Step title="Secure MySQL Installation">
+        ```bash
+        sudo mysql_secure_installation
+        ```
+
+        Answer the prompts:
+        - Set root password: **Yes**
+        - Remove anonymous users: **Yes**
+        - Disallow root login remotely: **Yes**
+        - Remove test database: **Yes**
+        - Reload privilege tables: **Yes**
+      </Step>
+
+      <Step title="Create Database User">
+        Create a dedicated database user (more secure than using root):
+
+        ```sql
+        mysql -u root -p
+
+        CREATE DATABASE prostocktool CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+        CREATE USER 'prostockuser'@'localhost' IDENTIFIED BY 'StrongPassword123!';
+
+        GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, INDEX, ALTER 
+        ON prostocktool.* TO 'prostockuser'@'localhost';
+
+        FLUSH PRIVILEGES;
+        ```
+
+        <Warning>
+          Replace `StrongPassword123!` with a strong, unique password. Store it securely.
+        </Warning>
+      </Step>
+
+      <Step title="Deploy Application Files">
+        ```bash
+        # Clone or upload files to web root
+        cd /var/www/html
+        git clone <repository-url> prostocktool
+        cd prostocktool
+
+        # Set proper ownership
+        sudo chown -R www-data:www-data .
+
+        # Set secure permissions
+        sudo find . -type f -exec chmod 644 {} \;
+        sudo find . -type d -exec chmod 755 {} \;
+
+        # Protect sensitive files
+        sudo chmod 600 database/conexion.php
+        ```
+      </Step>
+
+      <Step title="Update Database Configuration">
+        Edit `database/conexion.php` with production credentials:
+
+        ```php database/conexion.php
+        <?php
+
+        $host = "localhost";
+        $user = "prostockuser";
+        $pass = "StrongPassword123!";  // Use your secure password
+        $db = "prostocktool";
+
+        // Set UTF-8 encoding
+        $conn = new mysqli($host, $user, $pass, $db);
+        if ($conn->connect_errno) {
+            http_response_code(500);
+            echo json_encode(["error" => "Error de conexión a la base de datos"]);
+            exit;
+        }
+
+        $conn->set_charset("utf8mb4");
+        ?>
+        ```
+      </Step>
+
+      <Step title="Configure Apache Virtual Host">
+        Create a virtual host configuration:
+
+        ```bash
+        sudo nano /etc/apache2/sites-available/prostocktool.conf
+        ```
+
+        Add the following:
+
+        ```apache
+        <VirtualHost *:80>
+            ServerName prostocktool.example.com
+            ServerAdmin admin@example.com
+            DocumentRoot /var/www/html/prostocktool
+
+            <Directory /var/www/html/prostocktool>
+                Options -Indexes +FollowSymLinks
+                AllowOverride All
+                Require all granted
+
+                # Security headers
+                Header always set X-Content-Type-Options "nosniff"
+                Header always set X-Frame-Options "SAMEORIGIN"
+                Header always set X-XSS-Protection "1; mode=block"
+            </Directory>
+
+            ErrorLog ${APACHE_LOG_DIR}/prostocktool_error.log
+            CustomLog ${APACHE_LOG_DIR}/prostocktool_access.log combined
+        </VirtualHost>
+        ```
+
+        Enable the site:
+        ```bash
+        sudo a2ensite prostocktool.conf
+        sudo systemctl reload apache2
+        ```
+      </Step>
+
+      <Step title="Set Up SSL/TLS (Recommended)">
+        Use Let's Encrypt for free SSL certificates:
+
+        ```bash
+        # Install Certbot
+        sudo apt install certbot python3-certbot-apache
+
+        # Obtain and install certificate
+        sudo certbot --apache -d prostocktool.example.com
+
+        # Auto-renewal is configured automatically
+        # Test renewal:
+        sudo certbot renew --dry-run
+        ```
+
+        <Note>
+          HTTPS is strongly recommended for production to protect user credentials and data in transit.
+        </Note>
+      </Step>
+
+      <Step title="Import Production Schema">
+        Run the same SQL schema as development (see Development tab, Step 5).
+
+        ```bash
+        mysql -u prostockuser -p prostocktool < schema.sql
+        ```
+      </Step>
+
+      <Step title="Configure PHP for Production">
+        Edit PHP configuration for security:
+
+        ```bash
+        sudo nano /etc/php/7.4/apache2/php.ini
+        ```
+
+        Update these settings:
+        ```ini
+        display_errors = Off
+        log_errors = On
+        error_log = /var/log/php_errors.log
+        expose_php = Off
+        upload_max_filesize = 10M
+        post_max_size = 10M
+        max_execution_time = 30
+        memory_limit = 256M
+        ```
+
+        Restart Apache:
+        ```bash
+        sudo systemctl restart apache2
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Docker">
+    ### Docker Installation
+
+    <Steps>
+      <Step title="Create Docker Compose File">
+        Create `docker-compose.yml`:
+
+        ```yaml docker-compose.yml
+        version: '3.8'
+
+        services:
+          web:
+            image: php:7.4-apache
+            container_name: prostocktool_web
+            ports:
+              - "8080:80"
+            volumes:
+              - ./:/var/www/html
+            depends_on:
+              - db
+            environment:
+              - DB_HOST=db
+              - DB_USER=prostockuser
+              - DB_PASS=secret
+              - DB_NAME=prostocktool
+            command: >
+              bash -c "docker-php-ext-install mysqli &&
+                       apache2-foreground"
+
+          db:
+            image: mysql:8.0
+            container_name: prostocktool_db
+            environment:
+              MYSQL_ROOT_PASSWORD: rootpassword
+              MYSQL_DATABASE: prostocktool
+              MYSQL_USER: prostockuser
+              MYSQL_PASSWORD: secret
+            ports:
+              - "3306:3306"
+            volumes:
+              - db_data:/var/lib/mysql
+              - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+          phpmyadmin:
+            image: phpmyadmin/phpmyadmin
+            container_name: prostocktool_phpmyadmin
+            ports:
+              - "8081:80"
+            environment:
+              PMA_HOST: db
+              PMA_USER: prostockuser
+              PMA_PASSWORD: secret
+            depends_on:
+              - db
+
+        volumes:
+          db_data:
+        ```
+      </Step>
+
+      <Step title="Update Database Connection for Docker">
+        Modify `database/conexion.php`:
+
+        ```php database/conexion.php
+        <?php
+
+        $host = getenv('DB_HOST') ?: "localhost";
+        $user = getenv('DB_USER') ?: "root";
+        $pass = getenv('DB_PASS') ?: "";
+        $db = getenv('DB_NAME') ?: "prostocktool";
+
+        $conn = new mysqli($host, $user, $pass, $db);
+        if ($conn->connect_errno) {
+            http_response_code(500);
+            echo json_encode(["error" => "Error de conexión a la base de datos"]);
+            exit;
+        }
+
+        $conn->set_charset("utf8mb4");
+        ?>
+        ```
+      </Step>
+
+      <Step title="Start Docker Containers">
+        ```bash
+        # Build and start containers
+        docker-compose up -d
+
+        # View logs
+        docker-compose logs -f
+
+        # Stop containers
+        docker-compose down
+        ```
+
+        Access the application:
+        - **App**: http://localhost:8080/login.html
+        - **phpMyAdmin**: http://localhost:8081
+      </Step>
+    </Steps>
+  </Tab>
+</Tabs>
+
+## Post-Installation Configuration
+
+### Update API URLs
+
+Update API endpoints in JavaScript controller files to match your installation:
+
+```javascript controllers/bodega.js
+// Update this URL to match your installation
+const API_URL = 'http://your-domain.com/database/bodega.php';
+// Or for relative paths:
+const API_URL = '/database/bodega.php';
+```
+
+Files to update:
+- `controllers/bodega.js`
+- `controllers/categorias.js`
+- `controllers/proveedores.js`
+- `controllers/parametros.js`
+- `controllers/registro.js`
+
+### Enable Error Logging
+
+Create a custom error handler:
+
+```php database/error_handler.php
+<?php
+// Log errors to file
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/../logs/php_errors.log');
+
+// Don't display errors to users (production)
+ini_set('display_errors', 0);
+
+// Error handler function
+function customErrorHandler($errno, $errstr, $errfile, $errline) {
+    $log = sprintf(
+        "[%s] Error %d: %s in %s on line %d\n",
+        date('Y-m-d H:i:s'),
+        $errno,
+        $errstr,
+        $errfile,
+        $errline
+    );
+    error_log($log, 3, __DIR__ . '/../logs/app_errors.log');
+    return true;
+}
+
+set_error_handler('customErrorHandler');
+?>
+```
+
+Include in `conexion.php`:
+
+```php
+require_once 'error_handler.php';
+```
+
+### Create .htaccess for Security
+
+Add `.htaccess` in the root directory:
+
+```apache .htaccess
+# Prevent directory listing
+Options -Indexes
+
+# Protect sensitive files
+<FilesMatch "\.(env|ini|log|sh|sql)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Enable CORS (if needed)
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type"
+</IfModule>
+
+# Enable compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Set caching for static assets
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+</IfModule>
+```
+
+## Verification
+
+### Test Database Connection
+
+Create a test file `test_connection.php`:
+
+```php test_connection.php
+<?php
+require 'database/conexion.php';
+
+if ($conn->ping()) {
+    echo "Database connection successful!\n";
+    echo "MySQL server version: " . $conn->server_info . "\n";
+    
+    // Test query
+    $result = $conn->query("SELECT COUNT(*) as count FROM bodegas");
+    $row = $result->fetch_assoc();
+    echo "Warehouses in database: " . $row['count'] . "\n";
+} else {
+    echo "Database connection failed!\n";
+}
+
+$conn->close();
+?>
+```
+
+Run it:
+```bash
+php test_connection.php
+```
+
+<Warning>
+  Delete `test_connection.php` after testing to avoid exposing database information.
+</Warning>
+
+### Test API Endpoints
+
+```bash
+# Test warehouse endpoint
+curl http://localhost/Pro-Stock-Tool/database/bodega.php
+
+# Expected output:
+# {"success":true,"data":[]}
+```
+
+### Access the Application
+
+Navigate to:
+- Development: `http://localhost:8000/login.html`
+- Production: `https://your-domain.com/login.html`
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="500 Internal Server Error">
+    **Causes**:
+    1. PHP syntax errors
+    2. Database connection failure
+    3. Missing file permissions
+
+    **Solutions**:
+    ```bash
+    # Check Apache error log
+    sudo tail -f /var/log/apache2/error.log
+
+    # Check PHP error log
+    sudo tail -f /var/log/php_errors.log
+
+    # Verify file permissions
+    ls -la database/
+
+    # Test PHP syntax
+    php -l database/conexion.php
+    ```
+  </Accordion>
+
+  <Accordion title="Database Connection Refused">
+    **Solutions**:
+    ```bash
+    # Check if MySQL is running
+    sudo systemctl status mysql
+
+    # Start MySQL if stopped
+    sudo systemctl start mysql
+
+    # Test connection manually
+    mysql -u prostockuser -p prostocktool
+
+    # Check MySQL error log
+    sudo tail -f /var/log/mysql/error.log
+    ```
+  </Accordion>
+
+  <Accordion title="CORS Errors">
+    **For Apache**, ensure headers module is enabled:
+    ```bash
+    sudo a2enmod headers
+    sudo systemctl restart apache2
+    ```
+
+    **For Nginx**, add to server block:
+    ```nginx
+    add_header Access-Control-Allow-Origin *;
+    add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS";
+    add_header Access-Control-Allow-Headers "Content-Type";
+    ```
+  </Accordion>
+
+  <Accordion title="JSON Not Being Parsed">
+    **Check**:
+    1. Content-Type header is set: `Content-Type: application/json`
+    2. No PHP warnings/notices before JSON output
+    3. UTF-8 encoding is correct
+
+    **Solution**:
+    ```php
+    // At the top of each API file, before any output:
+    header('Content-Type: application/json; charset=utf-8');
+    ```
+  </Accordion>
+
+  <Accordion title="File Upload Issues">
+    Check PHP configuration:
+    ```bash
+    php -i | grep upload_max_filesize
+    php -i | grep post_max_size
+    ```
+
+    Update in `php.ini`:
+    ```ini
+    upload_max_filesize = 20M
+    post_max_size = 20M
+    ```
+
+    Restart web server:
+    ```bash
+    sudo systemctl restart apache2
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Database Security" icon="shield">
+    - Use dedicated database users with minimal privileges
+    - Never use `root` in production
+    - Enable SSL for database connections
+    - Regular backups with encryption
+  </Card>
+  <Card title="Application Security" icon="lock">
+    - Keep PHP and MySQL updated
+    - Disable PHP error display in production
+    - Use HTTPS for all connections
+    - Implement rate limiting on API endpoints
+  </Card>
+  <Card title="File Security" icon="folder">
+    - Set restrictive file permissions (644 for files, 755 for directories)
+    - Protect `database/conexion.php` (chmod 600)
+    - Use `.htaccess` to deny access to sensitive files
+    - Keep configuration files outside web root when possible
+  </Card>
+  <Card title="Password Security" icon="key">
+    - Enforce strong password policies
+    - Passwords are hashed with bcrypt
+    - Never log or display passwords
+    - Implement password reset functionality securely
+  </Card>
+</CardGroup>
+
+## Backup and Maintenance
+
+### Database Backup
+
+```bash
+# Backup database
+mysqldump -u prostockuser -p prostocktool > backup_$(date +%Y%m%d).sql
+
+# Backup with compression
+mysqldump -u prostockuser -p prostocktool | gzip > backup_$(date +%Y%m%d).sql.gz
+
+# Restore from backup
+mysql -u prostockuser -p prostocktool < backup_20260303.sql
+```
+
+### Automated Backup Script
+
+```bash backup.sh
+#!/bin/bash
+BACKUP_DIR="/var/backups/prostocktool"
+DATE=$(date +%Y%m%d_%H%M%S)
+
+mkdir -p $BACKUP_DIR
+
+# Backup database
+mysqldump -u prostockuser -pYourPassword prostocktool | gzip > $BACKUP_DIR/db_$DATE.sql.gz
+
+# Backup files
+tar -czf $BACKUP_DIR/files_$DATE.tar.gz /var/www/html/prostocktool
+
+# Keep only last 7 days
+find $BACKUP_DIR -type f -mtime +7 -delete
+
+echo "Backup completed: $DATE"
+```
+
+Schedule with cron:
+```bash
+crontab -e
+# Add: Daily backup at 2 AM
+0 2 * * * /usr/local/bin/backup.sh
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="gear" href="/guides/database-configuration">
+    Configure advanced settings and customize the application
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Explore the complete API documentation
+  </Card>
+  <Card title="Features" icon="star" href="/features/warehouse-management">
+    Learn about all available features
+  </Card>
+  <Card title="Server Setup" icon="server" href="/guides/server-setup">
+    Configure your web server and deploy to production
+  </Card>
+</CardGroup>

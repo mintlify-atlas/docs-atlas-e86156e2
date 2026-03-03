@@ -1,0 +1,569 @@
+---
+title: "Movement Tracking"
+description: "Monitor and analyze product movements including entries, exits, transfers, and returns across your inventory system"
+---
+
+## Overview
+
+Movement tracking provides complete visibility into all inventory transactions, helping you understand how products flow through your system. Track entries from suppliers, exits to customers, transfers between warehouses, and product returns with detailed audit trails.
+
+<Info>
+  All movements are recorded with timestamps, user information, and transaction details for complete traceability and compliance.
+</Info>
+
+## Movement Types
+
+<CardGroup cols={2}>
+  <Card title="Entradas" icon="arrow-down-to-line" color="#2e6df6">
+    **Product Entries**
+    
+    Incoming stock from suppliers, returns from customers, or production completions.
+  </Card>
+  
+  <Card title="Salidas" icon="arrow-up-from-line" color="#e74c3c">
+    **Product Exits**
+    
+    Outgoing stock for sales, transfers, waste, or inventory adjustments.
+  </Card>
+  
+  <Card title="Transferencias" icon="right-left" color="#f39c12">
+    **Warehouse Transfers**
+    
+    Movement of products between different warehouse locations or storage areas.
+  </Card>
+  
+  <Card title="Devoluciones" icon="rotate-left" color="#9b59b6">
+    **Returns**
+    
+    Products returned from customers or rejected items sent back to suppliers.
+  </Card>
+</CardGroup>
+
+## Accessing Movement Reports
+
+### Navigation
+
+Access movement tracking through the sidebar:
+
+1. Click **Movimiento** in the navigation menu
+2. Select from available sub-options:
+   - **Historial de Movimientos** (Movement History)
+   - **Entradas Recientes** (Recent Entries)
+   - **Salidas Recientes** (Recent Exits)
+   - **Transferencias Pendientes** (Pending Transfers)
+   - **Registro de Devoluciones** (Returns Log)
+
+<Tip>
+  Use the expandable **Movimiento** menu to quickly access different movement types without navigating through multiple pages.
+</Tip>
+
+## Product Entries (Entradas)
+
+### Recording New Entries
+
+Document incoming inventory with complete details:
+
+<Steps>
+  <Step title="Initiate Entry">
+    Navigate to **Movimiento** > **Nueva Entrada**
+    
+    Select entry type:
+    - **Compra** (Purchase): Supplier delivery
+    - **Devolución Cliente** (Customer Return): Returned merchandise
+    - **Producción** (Production): Manufactured goods
+    - **Ajuste** (Adjustment): Manual inventory correction
+  </Step>
+  
+  <Step title="Enter Details">
+    Complete the entry form:
+    
+    <ResponseField name="Producto" type="select" required>
+      Select the product from your catalog or scan barcode
+    </ResponseField>
+    
+    <ResponseField name="Cantidad" type="number" required>
+      Enter quantity received (validates against purchase order if applicable)
+    </ResponseField>
+    
+    <ResponseField name="Bodega" type="select" required>
+      Destination warehouse for the incoming stock
+    </ResponseField>
+    
+    <ResponseField name="Proveedor" type="select">
+      Supplier name (auto-populated for purchases)
+    </ResponseField>
+    
+    <ResponseField name="Documento Referencia" type="text">
+      Purchase order, delivery note, or invoice number
+    </ResponseField>
+    
+    <ResponseField name="Fecha Recepción" type="date" default="today">
+      Date goods were physically received
+    </ResponseField>
+    
+    <ResponseField name="Notas" type="textarea">
+      Additional comments about condition, quality, or discrepancies
+    </ResponseField>
+  </Step>
+  
+  <Step title="Validate and Save">
+    Review the entry details:
+    - Verify quantity matches delivery documentation
+    - Confirm warehouse destination is correct
+    - Check product condition and quality
+    
+    Click **Registrar Entrada** to save the transaction
+  </Step>
+  
+  <Step title="Update Stock">
+    The system automatically:
+    - Increases inventory count for the product
+    - Updates warehouse stock levels
+    - Creates audit trail entry
+    - Triggers low-stock alert removal if applicable
+  </Step>
+</Steps>
+
+### Entry Report Example
+
+```json
+{
+  "entry_id": "ENT-2026-00342",
+  "type": "purchase",
+  "product": {
+    "id": 145,
+    "code": "PROD-2345",
+    "name": "Laptop Dell Latitude 5420",
+    "category": "Electrónicos > Laptops"
+  },
+  "quantity": 15,
+  "warehouse": {
+    "id": 2,
+    "name": "Bodega Principal"
+  },
+  "supplier": {
+    "id": 7,
+    "name": "Tech Distributors S.A.",
+    "nif": "B12345678"
+  },
+  "reference_document": "PO-2026-0089",
+  "received_date": "2026-03-03",
+  "recorded_by": "Anbo Minecon",
+  "timestamp": "2026-03-03T14:23:45Z",
+  "notes": "All units inspected and in perfect condition"
+}
+```
+
+## Product Exits (Salidas)
+
+### Recording Exits
+
+Document outgoing inventory transactions:
+
+<AccordionGroup>
+  <Accordion title="Sales Exit" icon="cash-register">
+    **Process:**
+    1. Select product and quantity being sold
+    2. Choose source warehouse
+    3. Enter customer information (optional)
+    4. Add invoice or order reference number
+    5. Specify delivery date
+    6. Record payment status if applicable
+    
+    **Impact:**
+    - Decreases stock in selected warehouse
+    - Updates product availability
+    - Triggers low-stock alert if threshold reached
+    - Creates sales history entry
+  </Accordion>
+  
+  <Accordion title="Transfer Exit" icon="truck">
+    **Process:**
+    1. Initiate transfer from source warehouse
+    2. Specify destination warehouse
+    3. Select products and quantities
+    4. Assign transfer authorization
+    5. Schedule transfer date
+    6. Print transfer documentation
+    
+    **Impact:**
+    - Marks stock as "in transit"
+    - Creates pending transfer record
+    - Generates transfer tracking number
+    - Notifies destination warehouse
+  </Accordion>
+  
+  <Accordion title="Waste/Damage Exit" icon="trash">
+    **Process:**
+    1. Select damaged or expired products
+    2. Specify reason for removal:
+       - Damaged during storage
+       - Expired/near expiration
+       - Quality control failure
+       - Lost/stolen
+    3. Add supporting documentation
+    4. Require supervisor approval for high-value items
+    5. Record disposal method
+    
+    **Impact:**
+    - Reduces inventory count
+    - Creates loss/damage report
+    - Updates waste tracking metrics
+    - May trigger insurance claim process
+  </Accordion>
+  
+  <Accordion title="Adjustment Exit" icon="pen-to-square">
+    **Process:**
+    1. Perform physical inventory count
+    2. Identify discrepancies between system and actual
+    3. Document reason for variance
+    4. Get approval for adjustment (if required)
+    5. Record correction in system
+    
+    **Impact:**
+    - Corrects inventory inaccuracies
+    - Creates audit trail for investigation
+    - Highlights potential theft or process issues
+    - Updates stock to match physical count
+  </Accordion>
+</AccordionGroup>
+
+### Exit Validation Rules
+
+<Warning>
+  Exits are subject to validation rules to prevent inventory errors:
+  
+  - Cannot exit more quantity than available in warehouse
+  - Requires authorization for high-value items (configurable threshold)
+  - Blocked if product is reserved for other orders
+  - Prevented if product has quality hold status
+</Warning>
+
+## Warehouse Transfers
+
+### Transfer Workflow
+
+Manage product movement between warehouses:
+
+<Steps>
+  <Step title="Create Transfer Request">
+    **Source Warehouse:**
+    - Initiate transfer request
+    - Select products and quantities
+    - Specify destination warehouse
+    - Set priority level (Normal, Urgent, Scheduled)
+    - Add transfer reason and notes
+  </Step>
+  
+  <Step title="Approval Process">
+    **Warehouse Manager:**
+    - Review transfer request
+    - Verify stock availability
+    - Check destination capacity
+    - Approve or reject with comments
+    
+    <Info>
+      Automatic approval is available for transfers below configured value thresholds between authorized warehouses.
+    </Info>
+  </Step>
+  
+  <Step title="Prepare Transfer">
+    **Source Warehouse:**
+    - Pick products from storage locations
+    - Perform quality check before shipping
+    - Package items securely
+    - Print transfer documentation
+    - Update status to "Ready for Transfer"
+  </Step>
+  
+  <Step title="In Transit">
+    **Logistics:**
+    - Assign transfer to carrier/driver
+    - Update status to "In Transit"
+    - Track movement progress
+    - Monitor estimated arrival time
+    
+    During transit, stock is:
+    - Deducted from source warehouse
+    - Not yet added to destination
+    - Shown as "in transit" in reports
+  </Step>
+  
+  <Step title="Receive at Destination">
+    **Destination Warehouse:**
+    - Verify quantities received match transfer documentation
+    - Inspect product condition
+    - Report any discrepancies immediately
+    - Confirm receipt in system
+    - Update status to "Completed"
+    
+    Stock is now available at destination warehouse.
+  </Step>
+</Steps>
+
+### Transfer Status Tracking
+
+| Status | Description | Stock Impact |
+|--------|-------------|-------------|
+| **Pendiente** (Pending) | Awaiting approval | No change |
+| **Aprobado** (Approved) | Approved, awaiting pickup | No change |
+| **En Preparación** (Preparing) | Being picked and packed | No change |
+| **En Tránsito** (In Transit) | Moving between warehouses | Deducted from source |
+| **Recibido** (Received) | Arrived at destination | Added to destination |
+| **Completado** (Completed) | Fully processed | Transfer complete |
+| **Cancelado** (Cancelled) | Transfer cancelled | Reverted to source |
+
+## Returns Management (Devoluciones)
+
+### Customer Returns
+
+Process product returns from customers:
+
+<Tabs>
+  <Tab title="Return Authorization">
+    **Initial Processing:**
+    
+    1. Customer requests return
+    2. Verify return eligibility:
+       - Within return window (typically 30 days)
+       - Product condition acceptable
+       - Original packaging present (if required)
+       - Proof of purchase provided
+    3. Generate Return Authorization (RA) number
+    4. Provide return instructions to customer
+    5. Update order status to "Return Initiated"
+  </Tab>
+  
+  <Tab title="Return Receipt">
+    **Receiving Process:**
+    
+    1. Customer ships product back
+    2. Warehouse receives package
+    3. Match RA number with expected return
+    4. Inspect product condition:
+       - **Like New**: Full refund/replacement eligible
+       - **Used - Good**: May have restocking fee
+       - **Damaged**: Investigate damage cause
+       - **Not as Described**: Process complaint
+    5. Record condition assessment with photos if needed
+  </Tab>
+  
+  <Tab title="Return Processing">
+    **Final Steps:**
+    
+    1. Determine return resolution:
+       - **Refund**: Process payment reversal
+       - **Exchange**: Ship replacement product
+       - **Store Credit**: Issue credit voucher
+       - **Repair**: Send to service center
+    
+    2. Update inventory:
+       - Return to stock if resellable
+       - Mark as damaged/waste if not
+       - Update product history with return note
+    
+    3. Complete transaction:
+       - Close return ticket
+       - Notify customer of resolution
+       - Record in returns database for analysis
+  </Tab>
+</Tabs>
+
+### Supplier Returns
+
+Return defective or incorrect products to suppliers:
+
+```javascript
+// Return to Supplier Record Structure
+const supplierReturn = {
+  return_id: "RTS-2026-0034",
+  type: "supplier_return",
+  reason: "defective", // or: wrong_item, damaged, excess
+  
+  product: {
+    id: 234,
+    name: "Power Supply Unit 650W",
+    quantity: 8
+  },
+  
+  supplier: {
+    id: 12,
+    name: "Electronics Wholesale Ltd.",
+    contact: "returns@ewholesale.com"
+  },
+  
+  original_entry: "ENT-2026-00298",
+  purchase_order: "PO-2026-0067",
+  
+  defect_details: "Units fail POST test, no power output",
+  photos_attached: true,
+  
+  return_authorization: "SUP-RA-45892",
+  expected_resolution: "replacement",
+  
+  status: "awaiting_pickup",
+  created_date: "2026-03-03"
+}
+```
+
+## Movement History Reports
+
+### Comprehensive Movement Log
+
+Access complete transaction history:
+
+<CodeGroup>
+```javascript Filter by Date Range
+const filters = {
+  dateFrom: "2026-02-01",
+  dateTo: "2026-02-28",
+  movementTypes: ["entry", "exit", "transfer"],
+  warehouses: ["all"],
+  sortBy: "date_desc"
+}
+```
+
+```javascript Filter by Product
+const filters = {
+  productId: 145,
+  includeRelated: true, // Include subcategory products
+  dateFrom: "2026-01-01",
+  movementTypes: ["all"]
+}
+```
+
+```javascript Filter by Warehouse
+const filters = {
+  warehouseId: 2,
+  movementTypes: ["transfer"],
+  status: ["in_transit", "completed"],
+  dateFrom: "2026-03-01"
+}
+```
+</CodeGroup>
+
+### Movement Analytics
+
+<CardGroup cols={3}>
+  <Card title="Monthly Entries" icon="arrow-down">
+    **342 transactions**
+    
+    +12% vs last month
+  </Card>
+  
+  <Card title="Monthly Exits" icon="arrow-up">
+    **298 transactions**
+    
+    +8% vs last month
+  </Card>
+  
+  <Card title="Active Transfers" icon="truck-fast">
+    **23 in transit**
+    
+    5 delayed, 18 on schedule
+  </Card>
+</CardGroup>
+
+## Export and Integration
+
+### Movement Data Export
+
+Export movement data for analysis or compliance:
+
+<AccordionGroup>
+  <Accordion title="Excel Export" icon="file-excel">
+    Generate detailed spreadsheet with:
+    - All movement transactions in date range
+    - Product details and categories
+    - Warehouse information
+    - User who recorded transaction
+    - Reference documents and notes
+    - Calculated totals and summaries
+    
+    **Format Options:**
+    - Single sheet with all data
+    - Multiple sheets by movement type
+    - Pivot-ready format for analysis
+  </Accordion>
+  
+  <Accordion title="PDF Report" icon="file-pdf">
+    Professional formatted report including:
+    - Executive summary with key metrics
+    - Movement breakdown by type
+    - Charts showing trends
+    - Top products by movement volume
+    - Warehouse activity comparison
+    - Anomaly highlights and alerts
+  </Accordion>
+  
+  <Accordion title="API Integration" icon="code">
+    Access movement data programmatically:
+    
+    ```bash
+    GET /api/movimientos?fecha_desde=2026-02-01&fecha_hasta=2026-02-28
+    ```
+    
+    Returns JSON array of movement records with full details for integration with:
+    - ERP systems
+    - Business intelligence tools
+    - Custom dashboards
+    - Accounting software
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Accurate Recording" icon="check-double">
+    Ensure data integrity:
+    - Record movements in real-time, not batch at end of day
+    - Double-check quantities before confirming
+    - Include reference documents for all transactions
+    - Add detailed notes for unusual situations
+    - Take photos for high-value or damaged items
+  </Accordion>
+  
+  <Accordion title="Regular Reconciliation" icon="scale-balanced">
+    Maintain accuracy through verification:
+    - Perform daily reconciliation of high-activity warehouses
+    - Weekly spot checks on random products
+    - Monthly full inventory counts for critical items
+    - Investigate and resolve discrepancies immediately
+    - Document root causes to prevent recurrence
+  </Accordion>
+  
+  <Accordion title="Transfer Management" icon="truck">
+    Optimize inter-warehouse movements:
+    - Consolidate multiple small transfers into larger batches
+    - Schedule transfers during off-peak hours
+    - Use transfer tracking to minimize "in transit" time
+    - Implement standard packaging and labeling
+    - Train staff on proper transfer procedures
+  </Accordion>
+  
+  <Accordion title="Returns Processing" icon="rotate-left">
+    Streamline return handling:
+    - Establish clear return policies and communicate them
+    - Process returns within 24-48 hours of receipt
+    - Track return reasons to identify product issues
+    - Maintain separate quarantine area for returned items
+    - Analyze return trends monthly to address root causes
+  </Accordion>
+</AccordionGroup>
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Inventory Reports" icon="chart-line" href="/reports/inventory-reports">
+    Generate comprehensive stock level and distribution reports
+  </Card>
+  <Card title="Product Rotation" icon="rotate" href="/reports/product-rotation">
+    Monitor FIFO/FEFO compliance and expiration tracking
+  </Card>
+  <Card title="Warehouse Management" icon="warehouse" href="/features/warehouse-management">
+    Configure warehouses and storage locations
+  </Card>
+  <Card title="Product Management" icon="boxes-stacked" href="/features/product-management">
+    Manage product catalog and attributes
+  </Card>
+</CardGroup>

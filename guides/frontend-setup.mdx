@@ -1,0 +1,700 @@
+---
+title: Frontend Setup
+description: Configure the frontend architecture, file structure, and client-side components
+---
+
+## Overview
+
+Pro Stock Tool's frontend is built with vanilla HTML, CSS, and JavaScript following a modular architecture. This guide covers the file structure, configuration, and setup of frontend components.
+
+## Architecture Overview
+
+The frontend follows a Model-View-Controller (MVC) pattern:
+
+- **Views** (`view/`, `*.html`) - HTML templates for each page
+- **Controllers** (`controllers/`) - JavaScript business logic and API calls
+- **Styles** (`styles/`) - CSS stylesheets for UI components
+- **Assets** (`img/`) - Images and static resources
+
+## Directory Structure
+
+```
+prostocktool/
+├── database/              # PHP backend (API endpoints)
+│   ├── conexion.php      # Database connection
+│   ├── registro.php      # User registration API
+│   ├── bodega.php        # Warehouse management API
+│   ├── categorias.php    # Categories API
+│   ├── subcategorias.php # Subcategories API
+│   ├── proveedores.php   # Suppliers API
+│   └── parametros.php    # System parameters API
+├── controllers/          # JavaScript controllers
+│   ├── header-footer.js  # Navigation and layout
+│   ├── registro.js       # Registration form logic
+│   ├── bodega.js         # Warehouse management
+│   ├── categorias.js     # Category management
+│   ├── proveedores.js    # Supplier management
+│   └── parametros.js     # System parameters
+├── view/                 # HTML views
+│   ├── index.html        # Dashboard/home page
+│   ├── bodega.html       # Warehouse management
+│   ├── categoria.html    # Category management
+│   ├── parametros.html   # System parameters
+│   └── proveedores.html  # Supplier management
+├── styles/               # CSS stylesheets
+│   ├── header-footer.css # Navigation styles
+│   ├── Style-Registro.css # Registration page
+│   ├── StyleInicio.css   # Login page
+│   ├── bodega.css        # Warehouse styles
+│   ├── categorias.css    # Category styles
+│   ├── parametros.css    # Parameters styles
+│   └── proveedores.css   # Supplier styles
+├── img/                  # Image assets
+│   └── Pro-Stock-Sinfondo.png
+├── login.html            # User registration page
+└── Inicio-Sesion.html    # Login page
+```
+
+## Initial Setup
+
+<Steps>
+
+<Step title="Verify File Structure">
+
+Ensure all files are in the correct directories:
+
+```bash
+cd /var/www/prostocktool
+ls -la
+```
+
+You should see:
+- `database/` directory
+- `controllers/` directory
+- `view/` directory
+- `styles/` directory
+- `img/` directory
+- `login.html`
+- `Inicio-Sesion.html`
+
+</Step>
+
+<Step title="Configure Base URLs">
+
+The application uses absolute paths starting with `/`. Ensure your Apache DocumentRoot is set correctly:
+
+```apache
+DocumentRoot /var/www/prostocktool
+```
+
+All paths in HTML files use the root-relative format:
+
+```html
+<link rel="stylesheet" href="/styles/header-footer.css">
+<script src="/controllers/header-footer.js"></script>
+<img src="/img/Pro-Stock-Sinfondo.png" alt="Logo">
+```
+
+<Note>
+For subdirectory deployments, you'll need to update all paths to include the subdirectory prefix.
+</Note>
+
+</Step>
+
+<Step title="Verify Asset Loading">
+
+Check that static files are accessible:
+
+```bash
+# Test CSS file
+curl http://localhost/styles/header-footer.css
+
+# Test JavaScript file
+curl http://localhost/controllers/header-footer.js
+
+# Test image
+curl -I http://localhost/img/Pro-Stock-Sinfondo.png
+```
+
+All should return 200 OK responses.
+
+</Step>
+
+</Steps>
+
+## Page Structure
+
+### Entry Points
+
+The application has two main entry points:
+
+#### 1. Registration Page (`login.html`)
+
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles/Style-Registro.css">
+    <title>Registro</title>
+</head>
+<body>
+    <!-- Registration form -->
+    <script src="controllers/registro.js"></script>
+</body>
+</html>
+```
+
+**Key features:**
+- User registration form with email, name, ID, and password
+- Client-side validation
+- Password visibility toggle
+- Alert notifications
+- Connects to `/database/registro.php` API
+
+#### 2. Login Page (`Inicio-Sesion.html`)
+
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/styles/StyleInicio.css">
+    <title>Pagina Inicial</title>
+</head>
+<body>
+    <!-- Login form and feature showcase -->
+</body>
+</html>
+```
+
+**Key features:**
+- Split-screen design with feature highlights
+- Login form with email and password
+- Link to registration page
+
+### Application Views
+
+All application pages follow a consistent structure:
+
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Title - Pro Stock Tool</title>
+    <link rel="stylesheet" href="../styles/header-footer.css">
+    <link rel="stylesheet" href="../styles/page-specific.css">
+</head>
+<body>
+    <main>
+        <!-- Page content -->
+    </main>
+    
+    <!-- Scripts -->
+    <script src="../controllers/header-footer.js"></script>
+    <script src="../controllers/page-specific.js"></script>
+</body>
+</html>
+```
+
+## Navigation System
+
+The navigation is dynamically generated by `header-footer.js`:
+
+### Header Configuration
+
+The header component includes:
+
+- **Logo and branding**: Links to home page
+- **Page title**: Automatically set based on current page
+- **Search box**: Global product search
+- **Notifications**: Bell icon for alerts
+- **User profile**: Avatar and user information
+
+### Navigation Menu
+
+The sidebar navigation includes:
+
+```javascript
+const config = {
+    "index.html": {
+        titulo: "Panel Principal",
+        descripcion: "Bienvenido a Pro Stock Tool",
+        menuTitulo: "Panel Principal"
+    },
+    "bodega.html": {
+        titulo: "Bodegas",
+        descripcion: "Gestiona las bodegas de almacenamiento",
+        menuTitulo: "Bodegas"
+    },
+    "categoria.html": {
+        titulo: "Categorías",
+        descripcion: "Gestiona las categorías de productos",
+        menuTitulo: "Categorías"
+    },
+    "parametros.html": {
+        titulo: "Parámetros",
+        descripcion: "Configura los parámetros del sistema",
+        menuTitulo: "Parámetros"
+    },
+    "proveedores.html": {
+        titulo: "Proveedores",
+        descripcion: "Gestiona proveedores",
+        menuTitulo: "Proveedores"
+    }
+};
+```
+
+### Path Resolution
+
+The navigation automatically detects whether pages are in the root or `/view/` directory:
+
+```javascript
+function getBasePath() {
+    const path = window.location.pathname;
+    if (path.includes('/view/')) {
+        return '../';  // Go up one level
+    }
+    return './';       // Stay in current directory
+}
+```
+
+## API Integration
+
+### Fetch API Pattern
+
+All controllers use the Fetch API for backend communication:
+
+```javascript
+// Example from registro.js
+async function submitRegistration(data) {
+    try {
+        const response = await fetch('/database/registro.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result && result.success) {
+            showAlert(result.message, 'success');
+        } else {
+            showAlert(result.error, 'error');
+        }
+    } catch (error) {
+        showAlert('Error de conexión', 'error');
+    }
+}
+```
+
+### API Endpoints
+
+Each module connects to its corresponding PHP endpoint:
+
+| Module | Endpoint | Methods |
+|--------|----------|----------|
+| Registration | `/database/registro.php` | POST |
+| Warehouses | `/database/bodega.php` | GET, POST, PUT, DELETE |
+| Categories | `/database/categorias.php` | GET, POST, PUT, DELETE |
+| Subcategories | `/database/subcategorias.php` | GET, POST, PUT, DELETE |
+| Suppliers | `/database/proveedores.php` | GET, POST, PUT, DELETE |
+| Parameters | `/database/parametros.php` | GET, POST, PUT, DELETE |
+
+### Error Handling
+
+Standardized error handling pattern:
+
+```javascript
+try {
+    const response = await fetch(url, options);
+    
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.success) {
+        // Handle success
+    } else {
+        // Handle API-level error
+        showAlert(data.error || 'Error desconocido');
+    }
+} catch (error) {
+    // Handle network or parsing errors
+    console.error('Error:', error);
+    showAlert('Error de conexión');
+}
+```
+
+## Form Validation
+
+Client-side validation is implemented in controllers:
+
+### Registration Form Example
+
+```javascript
+// Email validation
+function validEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+// ID validation (6-20 digits)
+function validIdentidad(value) {
+    return /^[0-9]{6,20}$/.test(value);
+}
+
+// Form submission
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const email = emailInput.value.trim();
+    const nombre = nombreInput.value.trim();
+    const identidad = identidadInput.value.trim();
+    const password = passwordInput.value;
+    
+    // Validate inputs
+    if (!validEmail(email)) {
+        showAlert('Email inválido', 'error');
+        emailInput.focus();
+        return;
+    }
+    
+    if (nombre.length < 2) {
+        showAlert('Nombre demasiado corto', 'error');
+        nombreInput.focus();
+        return;
+    }
+    
+    if (!validIdentidad(identidad)) {
+        showAlert('N° Identidad inválido', 'error');
+        identidadInput.focus();
+        return;
+    }
+    
+    if (password.length < 6) {
+        showAlert('La contraseña debe tener mínimo 6 caracteres', 'error');
+        passwordInput.focus();
+        return;
+    }
+    
+    // Submit if valid
+    await submitRegistration({ email, nombre, identidad, contrasena: password });
+});
+```
+
+## Alert System
+
+Global alert/notification system:
+
+```javascript
+function showAlert(message, type = 'info') {
+    const alertElement = document.getElementById('alerta');
+    const messageElement = document.getElementById('alerta-mensaje');
+    
+    messageElement.textContent = message;
+    alertElement.className = `alerta alerta-${type}`;
+    alertElement.removeAttribute('hidden');
+    
+    // Auto-hide after 4 seconds
+    setTimeout(() => {
+        alertElement.setAttribute('hidden', '');
+    }, 4000);
+}
+```
+
+HTML structure:
+
+```html
+<div id="alerta" class="alerta" role="alert" aria-live="polite" hidden>
+    <button type="button" class="cerrar-alerta" aria-label="Cerrar alerta">×</button>
+    <p id="alerta-mensaje"></p>
+</div>
+```
+
+## Styling System
+
+### Global Styles
+
+The `header-footer.css` provides base styles for:
+
+- Layout grid system
+- Navigation sidebar
+- Header bar
+- Typography
+- Color scheme
+- Responsive breakpoints
+
+### Component-Specific Styles
+
+Each page has its own stylesheet:
+
+```css
+/* bodega.css example */
+.panel-bodegas {
+    padding: 24px;
+}
+
+.header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.grid-bodegas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.bodega-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+```
+
+### Responsive Design
+
+Mobile-first approach with breakpoints:
+
+```css
+/* Mobile (default) */
+.grid-bodegas {
+    grid-template-columns: 1fr;
+}
+
+/* Tablet */
+@media (min-width: 768px) {
+    .grid-bodegas {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+    .grid-bodegas {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+```
+
+## Configuration
+
+### API Base URL
+
+For different environments, you may need to configure the API base URL:
+
+```javascript
+// config.js (create this file)
+const CONFIG = {
+    API_BASE_URL: window.location.origin,
+    API_ENDPOINTS: {
+        registro: '/database/registro.php',
+        bodega: '/database/bodega.php',
+        categorias: '/database/categorias.php',
+        proveedores: '/database/proveedores.php',
+        parametros: '/database/parametros.php'
+    }
+};
+```
+
+Then use in controllers:
+
+```javascript
+const url = `${CONFIG.API_BASE_URL}${CONFIG.API_ENDPOINTS.bodega}`;
+```
+
+### Environment Detection
+
+```javascript
+const isDevelopment = window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1';
+
+if (isDevelopment) {
+    console.log('Running in development mode');
+}
+```
+
+## Performance Optimization
+
+<Steps>
+
+<Step title="Enable Browser Caching">
+
+Add to your Apache configuration:
+
+```apache
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+</IfModule>
+```
+
+</Step>
+
+<Step title="Minify Assets">
+
+For production, minify CSS and JavaScript:
+
+```bash
+# Install minifier
+npm install -g clean-css-cli uglify-js
+
+# Minify CSS
+cleancss -o styles/header-footer.min.css styles/header-footer.css
+
+# Minify JavaScript
+uglifyjs controllers/bodega.js -o controllers/bodega.min.js
+```
+
+Update HTML to use minified versions:
+
+```html
+<link rel="stylesheet" href="/styles/header-footer.min.css">
+<script src="/controllers/bodega.min.js"></script>
+```
+
+</Step>
+
+<Step title="Lazy Load Images">
+
+```html
+<img src="/img/placeholder.png" 
+     data-src="/img/large-image.png" 
+     loading="lazy" 
+     alt="Description">
+```
+
+</Step>
+
+<Step title="Use CDN for Fonts">
+
+Google Fonts are already implemented:
+
+```html
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" 
+      rel="stylesheet">
+```
+
+</Step>
+
+</Steps>
+
+## Accessibility
+
+Pro Stock Tool implements accessibility best practices:
+
+### Semantic HTML
+
+```html
+<main>
+    <section class="panel-bodegas">
+        <header class="header-section">
+            <h2>Gestión de Bodegas</h2>
+        </header>
+        <article class="bodega-card">
+            <!-- Content -->
+        </article>
+    </section>
+</main>
+```
+
+### ARIA Attributes
+
+```html
+<button aria-label="Cerrar modal">×</button>
+<div role="alert" aria-live="polite" id="alerta"></div>
+<nav aria-label="Main navigation"></nav>
+```
+
+### Keyboard Navigation
+
+All interactive elements are keyboard accessible:
+
+```javascript
+// Close modal on Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('active')) {
+        closeModal();
+    }
+});
+```
+
+## Troubleshooting
+
+### Assets Not Loading (404 Errors)
+
+**Issue**: CSS/JS files return 404
+
+**Solution**: Check that paths are correct relative to DocumentRoot:
+
+```bash
+# Verify file exists
+ls /var/www/prostocktool/styles/header-footer.css
+
+# Check Apache DocumentRoot
+apache2ctl -S | grep DocumentRoot
+```
+
+### JavaScript Not Executing
+
+**Issue**: Controllers don't run
+
+**Solution**: Check browser console for errors:
+
+```javascript
+// Add error handling
+window.addEventListener('error', (e) => {
+    console.error('Global error:', e.message, e.filename, e.lineno);
+});
+```
+
+### CORS Errors
+
+**Issue**: `Access-Control-Allow-Origin` errors
+
+**Solution**: Ensure PHP files include CORS headers:
+
+```php
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+```
+
+### Modal Not Opening
+
+**Issue**: Modals don't display
+
+**Solution**: Check CSS and JavaScript:
+
+```javascript
+// Ensure modal overlay is properly toggled
+function openModal() {
+    const modal = document.getElementById('modalOverlay');
+    modal.classList.add('active');
+    modal.setAttribute('aria-hidden', 'false');
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Server Setup" icon="server" href="/guides/server-setup">
+    Configure Apache and PHP server
+  </Card>
+  <Card title="Database Configuration" icon="database" href="/guides/database-configuration">
+    Set up MySQL database
+  </Card>
+</CardGroup>

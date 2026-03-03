@@ -1,0 +1,330 @@
+---
+title: "Inventory Reports"
+description: "Generate comprehensive inventory reports to monitor stock levels, product distribution, and warehouse performance"
+---
+
+## Overview
+
+Pro Stock Tool's inventory reporting system provides detailed insights into your stock levels, product distribution across warehouses, and inventory performance metrics. Generate customizable reports to make data-driven decisions about your inventory management.
+
+<Info>
+  Inventory reports can be filtered by date range, warehouse, category, and product parameters to focus on specific aspects of your inventory.
+</Info>
+
+## Report Types
+
+<CardGroup cols={2}>
+  <Card title="Stock Level Reports" icon="boxes-stacked">
+    Monitor current inventory levels, identify low-stock items, and track products approaching reorder points.
+  </Card>
+  <Card title="Warehouse Distribution" icon="warehouse">
+    View how inventory is distributed across different warehouses and storage locations.
+  </Card>
+  <Card title="Category Analysis" icon="folder-tree">
+    Analyze inventory composition by categories and subcategories to understand product mix.
+  </Card>
+  <Card title="Value Reports" icon="dollar-sign">
+    Calculate total inventory value and track investment across different product segments.
+  </Card>
+</CardGroup>
+
+## Generating Inventory Reports
+
+### Basic Report Generation
+
+To generate a standard inventory report:
+
+1. Navigate to **Reportes** > **Informes de Productos** in the sidebar
+2. Select the report type from the dropdown menu
+3. Choose your date range using the date picker
+4. Apply filters (optional):
+   - **Warehouse**: Filter by specific storage location
+   - **Category**: Focus on particular product categories
+   - **Parameter**: Filter by product parameters (status, type, etc.)
+5. Click **Generar Reporte** to create the report
+
+<Tip>
+  Save frequently used filter combinations as templates to speed up recurring report generation.
+</Tip>
+
+### Advanced Filtering
+
+Refine your inventory reports with advanced filtering options:
+
+<AccordionGroup>
+  <Accordion title="Date Range Selection" icon="calendar">
+    Choose from predefined ranges or set custom dates:
+    - **Hoy** (Today): Current day snapshot
+    - **Esta Semana** (This Week): Last 7 days
+    - **Este Mes** (This Month): Current month
+    - **Último Trimestre** (Last Quarter): Previous 90 days
+    - **Personalizado** (Custom): Specify exact start and end dates
+  </Accordion>
+
+  <Accordion title="Multi-Warehouse Filtering" icon="warehouse">
+    Select one or multiple warehouses to compare inventory across locations:
+    ```json
+    {
+      "warehouses": ["Bodega Principal", "Bodega Secundaria"],
+      "includeEmpty": false,
+      "sortBy": "stock_level"
+    }
+    ```
+    Enable "Show Empty Warehouses" to include locations with zero stock.
+  </Accordion>
+
+  <Accordion title="Category & Subcategory" icon="folder">
+    Filter by hierarchical category structure:
+    - Select parent category to include all subcategories
+    - Choose specific subcategories for granular analysis
+    - Apply color-coded parameter filters for additional segmentation
+  </Accordion>
+
+  <Accordion title="Stock Level Thresholds" icon="chart-line">
+    Focus on specific stock conditions:
+    - **Stock Bajo** (Low Stock): Items below minimum threshold
+    - **Stock Normal** (Normal Stock): Items within optimal range
+    - **Sobre Stock** (Overstock): Items exceeding maximum threshold
+    - **Sin Stock** (Out of Stock): Items with zero quantity
+  </Accordion>
+</AccordionGroup>
+
+## Stock Level Analysis
+
+### Current Stock Report
+
+The current stock report provides a real-time snapshot of your inventory:
+
+<ResponseField name="Product Information">
+  - Product code and name
+  - Category and subcategory classification
+  - Assigned parameter (color-coded)
+  - Supplier information
+</ResponseField>
+
+<ResponseField name="Stock Metrics">
+  - Current quantity in stock
+  - Minimum stock level (reorder point)
+  - Maximum stock level (capacity)
+  - Stock status indicator (low/normal/high)
+</ResponseField>
+
+<ResponseField name="Location Details">
+  - Primary warehouse assignment
+  - Distribution across multiple warehouses
+  - Available vs. reserved quantities
+</ResponseField>
+
+### Low Stock Alert Report
+
+Identify products requiring immediate attention:
+
+<Steps>
+  <Step title="Access Low Stock Report">
+    Navigate to **Reportes** > **Informes de Productos** > **Stock Bajo**
+  </Step>
+  
+  <Step title="Review Critical Items">
+    The report displays products where current stock is below the minimum threshold, sorted by urgency:
+    - **Critical** (0-25% of minimum): Immediate reorder required
+    - **Low** (26-50% of minimum): Reorder soon
+    - **Warning** (51-75% of minimum): Monitor closely
+  </Step>
+  
+  <Step title="Take Action">
+    For each low-stock item:
+    - Contact supplier directly from the report
+    - Create purchase order
+    - Adjust minimum stock levels if needed
+    - Transfer stock from other warehouses
+  </Step>
+</Steps>
+
+<Warning>
+  Products marked as **Critical** require immediate attention to avoid stockouts and potential business disruption.
+</Warning>
+
+## Warehouse Distribution Reports
+
+### Multi-Warehouse Inventory View
+
+Analyze how inventory is distributed across your warehouse network:
+
+```sql
+-- Example query structure (reference only)
+SELECT 
+  p.nombre AS producto,
+  b.nombre AS bodega,
+  COUNT(p.id) AS cantidad,
+  p.stock_minimo,
+  p.stock_maximo
+FROM productos p
+LEFT JOIN bodegas b ON p.bodega_id = b.id
+GROUP BY p.id, b.id
+ORDER BY b.nombre, p.nombre
+```
+
+**Report Includes:**
+
+- Product count per warehouse
+- Stock distribution percentages
+- Warehouse capacity utilization
+- Transfer recommendations for balanced distribution
+
+### Warehouse Performance Metrics
+
+<CardGroup cols={3}>
+  <Card title="Capacity Usage" icon="gauge-high">
+    **75%** average capacity utilization across all warehouses
+  </Card>
+  <Card title="Stock Balance" icon="scale-balanced">
+    **Good** distribution with minimal concentration risk
+  </Card>
+  <Card title="Empty Locations" icon="box-open">
+    **12** storage locations currently available
+  </Card>
+</CardGroup>
+
+## Category Analysis Reports
+
+### Inventory Composition
+
+Understand your product mix through category-based analysis:
+
+<Tabs>
+  <Tab title="By Category">
+    View top-level category breakdown:
+    
+    | Category | Products | Total Units | % of Inventory |
+    |----------|----------|-------------|----------------|
+    | Electrónicos | 145 | 3,240 | 42% |
+    | Alimentación | 98 | 2,150 | 28% |
+    | Textiles | 76 | 1,890 | 24% |
+    | Otros | 34 | 480 | 6% |
+  </Tab>
+  
+  <Tab title="By Subcategory">
+    Drill down into subcategory details:
+    
+    | Category | Subcategory | Products | Units | Growth |
+    |----------|-------------|----------|-------|--------|
+    | Electrónicos | Smartphones | 42 | 980 | +15% |
+    | Electrónicos | Laptops | 38 | 756 | +8% |
+    | Electrónicos | Accesorios | 65 | 1,504 | +22% |
+  </Tab>
+  
+  <Tab title="By Parameter">
+    Group by custom parameters (color-coded in system):
+    
+    - **Premium** (#4a90e2): 89 products, 1,245 units
+    - **Standard** (#2e6df6): 156 products, 4,120 units  
+    - **Económico** (#1e4db8): 108 products, 2,395 units
+  </Tab>
+</Tabs>
+
+## Export and Sharing
+
+### Export Formats
+
+Inventory reports can be exported in multiple formats:
+
+<CodeGroup>
+```bash PDF Export
+# Generate PDF report with charts and formatting
+POST /api/reportes/inventario/export
+{
+  "format": "pdf",
+  "includeCharts": true,
+  "filters": {...}
+}
+```
+
+```bash Excel Export
+# Export raw data for further analysis
+POST /api/reportes/inventario/export
+{
+  "format": "xlsx",
+  "includeFormulas": true,
+  "filters": {...}
+}
+```
+
+```bash CSV Export
+# Export for integration with other systems
+POST /api/reportes/inventario/export
+{
+  "format": "csv",
+  "encoding": "utf-8",
+  "filters": {...}
+}
+```
+</CodeGroup>
+
+### Scheduled Reports
+
+Automate report generation and distribution:
+
+1. Click **Programar Reporte** in the report interface
+2. Set the schedule:
+   - **Frequency**: Daily, Weekly, Monthly, Quarterly
+   - **Time**: Specific time for report generation
+   - **Recipients**: Email addresses for automatic delivery
+3. Configure report parameters and filters
+4. Save the scheduled report
+
+<Tip>
+  Schedule weekly low-stock reports to be sent every Monday morning to ensure proactive inventory management.
+</Tip>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Regular Review Schedule" icon="clock">
+    Establish a consistent reporting rhythm:
+    - **Daily**: Stock level checks for fast-moving items
+    - **Weekly**: Low stock alerts and reorder planning
+    - **Monthly**: Comprehensive inventory analysis and trends
+    - **Quarterly**: Strategic inventory composition review
+  </Accordion>
+
+  <Accordion title="Threshold Optimization" icon="sliders">
+    Regularly review and adjust stock thresholds:
+    - Monitor products that frequently trigger low-stock alerts
+    - Adjust minimum levels based on lead times and demand patterns
+    - Set maximum levels to optimize warehouse space utilization
+    - Use seasonal data to modify thresholds throughout the year
+  </Accordion>
+
+  <Accordion title="Multi-Warehouse Strategy" icon="warehouse">
+    Optimize inventory across locations:
+    - Balance stock to minimize concentration risk
+    - Position inventory closer to demand centers
+    - Use distribution reports to identify transfer opportunities
+    - Maintain safety stock at critical locations
+  </Accordion>
+
+  <Accordion title="Category Monitoring" icon="chart-pie">
+    Track category performance and trends:
+    - Identify growing vs. declining categories
+    - Rebalance inventory mix based on demand
+    - Consolidate slow-moving subcategories
+    - Allocate warehouse space proportionally to category importance
+  </Accordion>
+</AccordionGroup>
+
+## Related Documentation
+
+<CardGroup cols={2}>
+  <Card title="Movement Tracking" icon="arrows-turn-right" href="/reports/movement-tracking">
+    Track product entries, exits, and transfers across warehouses
+  </Card>
+  <Card title="Product Rotation" icon="rotate" href="/reports/product-rotation">
+    Monitor product rotation and expiration tracking
+  </Card>
+  <Card title="Warehouse Management" icon="warehouse" href="/features/warehouse-management">
+    Learn about warehouse setup and configuration
+  </Card>
+  <Card title="Category Management" icon="folder-tree" href="/features/category-management">
+    Understand category and subcategory organization
+  </Card>
+</CardGroup>

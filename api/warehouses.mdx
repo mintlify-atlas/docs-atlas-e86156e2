@@ -1,0 +1,280 @@
+---
+title: Warehouses API
+description: Manage warehouse locations and inventory storage
+---
+
+## Endpoint
+
+```
+/database/bodega.php
+```
+
+## Get All Warehouses
+
+Retrieve a list of all warehouses ordered by ID (newest first).
+
+```bash
+curl -X GET https://your-domain.com/database/bodega.php
+```
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "data": [
+    {
+      "id": 3,
+      "nombre": "Almacén Central",
+      "descripcion": "Bodega principal de distribución"
+    },
+    {
+      "id": 2,
+      "nombre": "Bodega Norte",
+      "descripcion": "Sucursal zona norte"
+    },
+    {
+      "id": 1,
+      "nombre": "Bodega Sur",
+      "descripcion": ""
+    }
+  ]
+}
+```
+</ResponseExample>
+
+### Response Fields
+
+<ResponseField name="id" type="integer">
+  Unique warehouse identifier
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  Warehouse name
+</ResponseField>
+
+<ResponseField name="descripcion" type="string">
+  Warehouse description (can be empty)
+</ResponseField>
+
+---
+
+## Create Warehouse
+
+Create a new warehouse location.
+
+```bash
+curl -X POST https://your-domain.com/database/bodega.php \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nombre": "Almacén Central",
+    "descripcion": "Bodega principal de distribución"
+  }'
+```
+
+### Request Parameters
+
+<ParamField body="nombre" type="string" required>
+  Warehouse name (maximum 100 characters, must be unique)
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Optional warehouse description
+</ParamField>
+
+### Validation Rules
+
+- **nombre**: Required, maximum 100 characters, must be unique
+- **descripcion**: Optional, no length limit
+- Warehouse name uniqueness is checked before creation
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "id": 4,
+  "message": "Bodega creada exitosamente"
+}
+```
+
+```json Error - Missing Name
+{
+  "success": false,
+  "error": "El nombre es obligatorio"
+}
+```
+
+```json Error - Name Too Long
+{
+  "success": false,
+  "error": "El nombre no puede superar 100 caracteres"
+}
+```
+
+```json Error - Duplicate Name
+{
+  "success": false,
+  "error": "Ya existe una bodega con este nombre"
+}
+```
+</ResponseExample>
+
+---
+
+## Update Warehouse
+
+Update an existing warehouse's information.
+
+```bash
+curl -X PUT https://your-domain.com/database/bodega.php \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": 4,
+    "nombre": "Almacén Central Actualizado",
+    "descripcion": "Nueva descripción"
+  }'
+```
+
+### Request Parameters
+
+<ParamField body="id" type="integer" required>
+  Warehouse ID to update (must be greater than 0)
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  New warehouse name (maximum 100 characters)
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  New warehouse description
+</ParamField>
+
+### Validation Rules
+
+- **id**: Required, must be greater than 0, warehouse must exist
+- **nombre**: Required, maximum 100 characters, must be unique (excluding current warehouse)
+- **descripcion**: Optional
+- Updates `fecha_actualizacion` timestamp automatically
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "message": "Bodega actualizada exitosamente"
+}
+```
+
+```json Error - Invalid ID
+{
+  "success": false,
+  "error": "ID inválido"
+}
+```
+
+```json Error - Not Found
+{
+  "success": false,
+  "error": "Bodega no encontrada"
+}
+```
+
+```json Error - Duplicate Name
+{
+  "success": false,
+  "error": "Ya existe otra bodega con este nombre"
+}
+```
+</ResponseExample>
+
+---
+
+## Delete Warehouse
+
+Delete a warehouse from the system.
+
+```bash
+curl -X DELETE https://your-domain.com/database/bodega.php \
+  -H "Content-Type: application/json" \
+  -d '{"id": 4}'
+```
+
+### Request Parameters
+
+<ParamField body="id" type="integer" required>
+  Warehouse ID to delete (must be greater than 0)
+</ParamField>
+
+### Validation Rules
+
+- **id**: Required, must be greater than 0, warehouse must exist
+- Cannot delete if warehouse has associated products
+- Checks `productos` table for foreign key relationships
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "message": "Bodega eliminada exitosamente"
+}
+```
+
+```json Error - Invalid ID
+{
+  "success": false,
+  "error": "ID inválido"
+}
+```
+
+```json Error - Not Found
+{
+  "success": false,
+  "error": "Bodega no encontrada"
+}
+```
+
+```json Error - Has Products
+{
+  "success": false,
+  "error": "No se puede eliminar. Tiene 15 producto(s) asociado(s)"
+}
+```
+</ResponseExample>
+
+<Warning>
+  Deleting a warehouse is prevented if it has associated products. You must reassign or delete the products first.
+</Warning>
+
+---
+
+## Database Schema
+
+The warehouses are stored in the `bodegas` table:
+
+```sql
+CREATE TABLE bodegas (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(100) NOT NULL UNIQUE,
+  descripcion TEXT,
+  fecha_creacion DATETIME,
+  fecha_actualizacion DATETIME
+);
+```
+
+## Error Codes
+
+| Error Message | Cause | Solution |
+|---------------|-------|----------|
+| `Datos inválidos` | Invalid JSON in request body | Check JSON syntax |
+| `El nombre es obligatorio` | Missing nombre field | Include nombre in request |
+| `El nombre no puede superar 100 caracteres` | Name too long | Shorten the warehouse name |
+| `Ya existe una bodega con este nombre` | Duplicate name | Use a different warehouse name |
+| `ID inválido` | Invalid or missing ID | Provide valid ID > 0 |
+| `Bodega no encontrada` | Warehouse doesn't exist | Check warehouse ID |
+| `No se puede eliminar. Tiene X producto(s) asociado(s)` | Foreign key constraint | Remove products first |

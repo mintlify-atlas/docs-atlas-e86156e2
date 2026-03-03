@@ -1,0 +1,589 @@
+---
+title: Supplier Management
+description: Manage supplier information and track vendor relationships for procurement
+---
+
+## Overview
+
+The supplier management system (proveedores) enables you to maintain a comprehensive database of vendors and suppliers. Track contact information, payment terms, and associate suppliers with inventory status parameters for better procurement management.
+
+## Key Features
+
+- Complete supplier profile management
+- Contact information tracking (email, phone, web)
+- Payment terms configuration
+- Status parameter integration
+- Product association tracking
+- Advanced search across multiple fields
+- NIF/tax ID validation
+
+## Data Structure
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | Integer | Auto | Unique identifier |
+| `nif` | String | No | Tax ID / business registration number |
+| `nombre` | String | Yes | Supplier name |
+| `contacto` | String | No | Primary contact person |
+| `email` | String | No | Email address (validated format) |
+| `telefono` | String | No | Phone number |
+| `direccion` | String | No | Street address |
+| `ciudad` | String | No | City/location |
+| `web` | String | No | Website URL |
+| `terminos` | Integer | No | Payment terms in days |
+| `parametro_id` | Integer | No | Status parameter reference (FK) |
+| `fecha_creacion` | DateTime | Auto | Creation timestamp |
+| `fecha_actualizacion` | DateTime | Auto | Last update timestamp |
+
+## User Workflows
+
+### Creating a Supplier
+
+<Steps>
+  <Step title="Open create dialog">
+    Click **Nuevo Proveedor** button to open the supplier form.
+  </Step>
+  
+  <Step title="Enter required information">
+    Fill in at minimum the **Nombre** field (required). All other fields are optional.
+  </Step>
+  
+  <Step title="Add contact details">
+    Provide optional information:
+    - **NIF**: Tax identification number
+    - **Contacto**: Contact person name
+    - **Email**: Validated email format (e.g., `supplier@example.com`)
+    - **Teléfono**: Phone number
+    - **Dirección**: Street address
+    - **Ciudad**: City or region
+  </Step>
+  
+  <Step title="Configure business details">
+    - **Web**: Supplier website URL
+    - **Términos**: Payment terms in days (e.g., 30, 60, 90)
+    - **Estado**: Select status parameter if applicable
+  </Step>
+  
+  <Step title="Save supplier">
+    Click **Guardar**. The system validates email format if provided.
+  </Step>
+</Steps>
+
+<Note>
+  The only required field is **Nombre**. All other fields are optional, allowing flexible data entry as information becomes available.
+</Note>
+
+### Editing a Supplier
+
+<Steps>
+  <Step title="Locate supplier">
+    Use the search bar to filter by name, NIF, email, or city. Or browse the supplier cards.
+  </Step>
+  
+  <Step title="Open edit mode">
+    Click the **edit icon** (✏️) in the top-right corner of the supplier card.
+  </Step>
+  
+  <Step title="Update information">
+    Modify any field. The form is pre-populated with existing data.
+  </Step>
+  
+  <Step title="Save changes">
+    Click **Guardar** to update the supplier record.
+  </Step>
+</Steps>
+
+### Deleting a Supplier
+
+<Warning>
+  There is no backend validation preventing deletion of suppliers with associated products. Exercise caution when deleting supplier records.
+</Warning>
+
+<Steps>
+  <Step title="Select supplier">
+    Click the **delete icon** (🗑️) on the supplier card.
+  </Step>
+  
+  <Step title="Confirm deletion">
+    A browser confirmation dialog appears: "¿Seguro que deseas eliminar este proveedor?"
+    Click **OK** to proceed.
+  </Step>
+  
+  <Step title="Permanent removal">
+    The supplier is immediately deleted from the database.
+  </Step>
+</Steps>
+
+### Searching Suppliers
+
+The search feature filters across multiple fields:
+
+```javascript
+// Searches in: nombre, nif, email, ciudad
+const filtered = proveedores.filter(p =>
+  (p.nombre && p.nombre.toLowerCase().includes(query)) ||
+  (p.nif && p.nif.toLowerCase().includes(query)) ||
+  (p.email && p.email.toLowerCase().includes(query)) ||
+  (p.ciudad && p.ciudad.toLowerCase().includes(query))
+);
+```
+
+**Search Tips:**
+- Type supplier name, tax ID, email, or city
+- Results update in real-time as you type
+- Search is case-insensitive
+- Clear search to show all suppliers
+
+## Status Parameters Integration
+
+Suppliers can be assigned status parameters for classification:
+
+### Loading Parameters
+
+**Source:** `proveedores.js:61-76`
+
+```javascript
+async function cargarParametrosEstado() {
+  const resp = await fetch(`${API_PARAM}?_=${Date.now()}`, { 
+    cache: 'no-store' 
+  });
+  const data = await resp.json();
+  if (data.success) {
+    parametrosEstados = data.data;
+    poblarSelectEstados();
+  }
+}
+```
+
+The system loads all available parameters and populates the status dropdown.
+
+### Parameter Display
+
+**Source:** `proveedores.js:131-141`
+
+Supplier cards display the status with parameter color:
+
+```javascript
+const badgeName = p.estado_nombre || p.estado || 'ACTIVO';
+const badgeColor = p.estado_color;
+
+<span class="badge-status" 
+      style="background:${badgeColor}; color:${textColor}">
+  ${badgeName}
+</span>
+```
+
+<Info>
+  The badge color comes from the associated parameter. Text color is calculated based on background luminance for optimal contrast.
+</Info>
+
+### Parameter Selection
+
+The status dropdown is populated with all parameters:
+
+```javascript
+provEstado.innerHTML = parametrosEstados.map(p => 
+  `<option value="${p.id}" data-color="${p.color}">
+    ${p.nombre}
+  </option>`
+).join('');
+```
+
+## API Reference
+
+```
+GET    /database/proveedores.php      # List all suppliers
+POST   /database/proveedores.php      # Create supplier
+PUT    /database/proveedores.php      # Update supplier
+DELETE /database/proveedores.php      # Delete supplier
+```
+
+### Get All Suppliers
+
+<Tabs>
+  <Tab title="Request">
+    ```javascript
+    const response = await fetch('database/proveedores.php?_=' + Date.now(), {
+      cache: 'no-store'
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Response">
+    ```json
+    {
+      "success": true,
+      "data": [
+        {
+          "id": 1,
+          "nif": "B12345678",
+          "nombre": "Tech Supplies Inc",
+          "contacto": "John Doe",
+          "email": "sales@techsupplies.com",
+          "telefono": "+1-555-0123",
+          "direccion": "123 Tech Street",
+          "ciudad": "San Francisco",
+          "web": "https://techsupplies.com",
+          "terminos": 30,
+          "parametro_id": 1,
+          "estado_nombre": "ACTIVO",
+          "estado_color": "#10B981",
+          "productos_count": 0
+        }
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Create Supplier
+
+<Tabs>
+  <Tab title="Request">
+    ```javascript
+    const response = await fetch('database/proveedores.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nif: 'B12345678',
+        nombre: 'New Supplier Co',
+        contacto: 'Jane Smith',
+        email: 'contact@newsupplier.com',
+        telefono: '+1-555-9999',
+        direccion: '456 Business Ave',
+        ciudad: 'New York',
+        web: 'https://newsupplier.com',
+        terminos: 45,
+        parametro_id: 1
+      })
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Success Response">
+    ```json
+    {
+      "success": true,
+      "id": 5,
+      "message": "Proveedor creado"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Error Response (Missing Name)">
+    ```json
+    {
+      "success": false,
+      "error": "El nombre es obligatorio"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Error Response (Invalid Email)">
+    ```json
+    {
+      "success": false,
+      "error": "Correo inválido"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Update Supplier
+
+<Tabs>
+  <Tab title="Request">
+    ```javascript
+    const response = await fetch('database/proveedores.php', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: 5,
+        nif: 'B12345678',
+        nombre: 'Updated Supplier Name',
+        email: 'newemail@supplier.com',
+        terminos: 60,
+        parametro_id: 2
+        // Other fields...
+      })
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Success Response">
+    ```json
+    {
+      "success": true,
+      "message": "Proveedor actualizado"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Delete Supplier
+
+<Tabs>
+  <Tab title="Request">
+    ```javascript
+    const response = await fetch('database/proveedores.php', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: 5 })
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Success Response">
+    ```json
+    {
+      "success": true,
+      "message": "Proveedor eliminado"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Validation Rules
+
+<AccordionGroup>
+  <Accordion title="Nombre Validation">
+    **Required Field**
+    
+    - Cannot be empty
+    - Validated on both frontend and backend
+    - Trimmed of leading/trailing whitespace
+    
+    **Frontend:** `proveedores.js:224`
+    ```javascript
+    if (!body.nombre) {
+      mostrarAlerta('El nombre es obligatorio', 'error');
+      provNombre.focus();
+      return;
+    }
+    ```
+    
+    **Backend:** `proveedores.php:44`
+    ```php
+    if ($nombre === '') {
+      echo json_encode(['error'=>'El nombre es obligatorio']);
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Email Validation">
+    **Optional but Validated**
+    
+    If email is provided, it must match the pattern: `\S+@\S+\.\S+`
+    
+    **Frontend:** `proveedores.js:225`
+    ```javascript
+    if (body.email && !/^\S+@\S+\.\S+$/.test(body.email)) {
+      mostrarAlerta('Correo inválido', 'error');
+      return;
+    }
+    ```
+    
+    Examples:
+    - ✅ `supplier@example.com`
+    - ✅ `contact@tech-supplies.co.uk`
+    - ❌ `invalid-email`
+    - ❌ `missing@domain`
+  </Accordion>
+  
+  <Accordion title="Términos Validation">
+    **Payment Terms Processing**
+    
+    - Stored as integer (days)
+    - `null` if not provided
+    - Frontend parses to integer: `parseInt(provTerminos.value, 10)`
+    - Backend stores as SQL `NULL` or integer value
+    
+    **Backend:** `proveedores.php:41,46`
+    ```php
+    $terminos = isset($data['terminos']) ? intval($data['terminos']) : null;
+    $terminosSql = is_null($terminos) ? 'NULL' : $terminos;
+    ```
+  </Accordion>
+  
+  <Accordion title="Parameter ID Validation">
+    **Status Parameter Reference**
+    
+    - Optional field
+    - Must reference valid `parametros.id` if provided
+    - `null` if no status assigned
+    - Joined with parameters table on GET for display
+    
+    **Backend JOIN:** `proveedores.php:17-22`
+    ```php
+    SELECT pr.*, par.nombre AS estado_nombre, par.color AS estado_color
+    FROM proveedores pr
+    LEFT JOIN parametros par ON par.id = pr.parametro_id
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## UI Components
+
+### Supplier Card
+
+Each supplier is displayed as a card:
+
+**Structure:**
+- **Header**: Supplier name and status badge
+- **Body**: All contact and business information
+- **Footer**: Product count (currently shows 0)
+- **Actions**: Edit and delete buttons (top-right corner)
+
+**Source:** `proveedores.js:130-155`
+
+```javascript
+<div class="card-proveedor">
+  <div class="card-actions">
+    <button class="btn-icon" title="Editar">✏️</button>
+    <button class="btn-icon" title="Eliminar">🗑️</button>
+  </div>
+  <div class="card-header">
+    <div class="card-title">${nombre}</div>
+    <span class="badge-status" style="background:${color}">
+      ${estado_nombre}
+    </span>
+  </div>
+  <div class="card-body">
+    <!-- All metadata fields -->
+  </div>
+  <div class="card-footer">${productos_count} Productos</div>
+</div>
+```
+
+### Status Badge Color Calculation
+
+**Source:** `proveedores.js:260-267`
+
+The badge uses smart text color based on background luminance:
+
+```javascript
+function badgeFG(hex) {
+  const r = parseInt(hex.substr(1,2), 16);
+  const g = parseInt(hex.substr(3,2), 16);
+  const b = parseInt(hex.substr(5,2), 16);
+  const luminance = (0.299*r + 0.587*g + 0.114*b) / 255;
+  return luminance > 0.6 ? '#111827' : '#ffffff';
+}
+```
+
+This ensures text is always readable against the parameter color.
+
+### Empty State
+
+When no suppliers exist:
+
+```html
+<div class="empty-state">
+  No hay proveedores registrados
+</div>
+```
+
+## Technical Implementation
+
+### Frontend (proveedores.js)
+
+**Key Functions:**
+
+- `cargarParametrosEstado()` - Loads status parameters (line 61)
+- `cargarProveedores()` - Fetches all suppliers with JOIN data (line 79)
+- `crearProveedor(body)` - POST new supplier (line 96)
+- `actualizarProveedor(id, body)` - PUT update (line 101)
+- `eliminarProveedor(id)` - DELETE with confirmation (line 106)
+- `filtrarProveedores()` - Multi-field search (line 158)
+- `editarProveedor(id)` - Populates edit form (line 182)
+
+**Event Delegation:**
+
+Line 48-58: Uses event delegation for dynamic card buttons:
+
+```javascript
+listaProveedores.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const id = parseInt(btn.getAttribute('data-id'), 10);
+  const action = btn.getAttribute('data-action');
+  if (action === 'edit') editarProveedor(id);
+  if (action === 'delete') eliminarProveedor(id);
+});
+```
+
+### Backend (proveedores.php)
+
+**Database Table:** `proveedores`
+
+**Key Operations:**
+
+- **Line 16-27**: GET with LEFT JOIN to parameters table
+- **Line 30-54**: POST - Creates supplier with null handling
+- **Line 57-83**: PUT - Updates supplier by ID
+- **Line 86-96**: DELETE - Removes supplier (no cascade protection)
+
+**Null Handling Pattern:**
+
+```php
+$terminos = isset($data['terminos']) ? intval($data['terminos']) : null;
+$terminosSql = is_null($terminos) ? 'NULL' : $terminos;
+
+$sql = "INSERT INTO proveedores (..., terminos, ...) 
+        VALUES (..., $terminosSql, ...)";
+```
+
+This allows optional integer fields while maintaining SQL compatibility.
+
+<Note>
+  The backend does not validate foreign key integrity for `parametro_id`. Ensure the parameter exists before assigning it to a supplier.
+</Note>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Complete Profiles" icon="address-card">
+    Fill in as much supplier information as possible for better vendor management
+  </Card>
+  
+  <Card title="Valid Emails" icon="envelope">
+    Use proper email format for automated communications and notifications
+  </Card>
+  
+  <Card title="Payment Terms" icon="calendar-days">
+    Document payment terms to track cash flow and vendor agreements
+  </Card>
+  
+  <Card title="Status Tracking" icon="flag">
+    Use parameters to track supplier status (active, preferred, discontinued, etc.)
+  </Card>
+  
+  <Card title="Search Optimization" icon="magnifying-glass">
+    Use consistent naming in ciudad field for location-based filtering
+  </Card>
+  
+  <Card title="Regular Updates" icon="pen-to-square">
+    Keep contact information current for effective communication
+  </Card>
+</CardGroup>
+
+## Common Error Messages
+
+| Error Message | Cause | Solution |
+|---------------|-------|----------|
+| "El nombre es obligatorio" | Empty nombre field | Enter supplier name |
+| "Correo inválido" | Email doesn't match pattern | Use format: name@domain.com |
+| "Error de conexión" | Network or server issue | Check connection and retry |
+| "Datos inválidos" | Invalid JSON payload | Check request format |
+| "ID inválido" | Missing or invalid ID on update/delete | Provide valid supplier ID |
+
+## Future Enhancements
+
+Based on the code structure, potential improvements include:
+
+- **Product Count**: Implement actual COUNT query for `productos_count` (currently hardcoded to 0)
+- **Deletion Protection**: Add cascade check to prevent deleting suppliers with products
+- **NIF Validation**: Add format validation for tax ID numbers
+- **Duplicate Detection**: Check for duplicate NIF or email before creation
+- **Contact History**: Track communication history with suppliers
+- **Document Attachments**: Link contracts and agreements to supplier records

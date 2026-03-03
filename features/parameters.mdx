@@ -1,0 +1,748 @@
+---
+title: Inventory Parameters
+description: Configure status parameters with color coding for product and supplier classification
+---
+
+## Overview
+
+The parameters system (parametros) provides a flexible classification mechanism for products and suppliers. Create custom status parameters with visual color coding to track inventory states, product conditions, or any other categorical data you need.
+
+## Key Features
+
+- Create unlimited custom parameters
+- Color-coded visual identification
+- Automatic code generation
+- Real-time product count tracking
+- Integration with products and suppliers
+- Deletion protection for parameters in use
+- Predefined color palette with 10 options
+
+## Data Structure
+
+| Field | Type | Required | Max Length | Description |
+|-------|------|----------|------------|--------------|
+| `id` | Integer | Auto | - | Unique identifier |
+| `codigo` | String | Auto/Manual | - | Parameter code (e.g., "001", "002") |
+| `nombre` | String | Yes | 50 chars | Parameter name/label |
+| `descripcion` | String | No | - | Optional description |
+| `color` | String | Yes | 7 chars | Hex color code (#RRGGBB format) |
+| `fecha_creacion` | DateTime | Auto | - | Creation timestamp |
+| `fecha_actualizacion` | DateTime | Auto | - | Last update timestamp |
+
+## User Workflows
+
+### Creating a Parameter
+
+<Steps>
+  <Step title="Open create dialog">
+    Click **Nuevo Parámetro** button in the parameters management page.
+  </Step>
+  
+  <Step title="Enter parameter details">
+    Fill in the required fields:
+    - **Estado** (Nombre): The parameter name (e.g., "ACTIVO", "INACTIVO", "EN TRÁNSITO")
+    - **Descripción**: Optional details about when to use this parameter
+  </Step>
+  
+  <Step title="Select a color">
+    Click one of the 10 color swatches in the palette:
+    - Blue (#3B82F6) - Default
+    - Green (#10B981)
+    - Amber (#F59E0B)
+    - Purple (#8B5CF6)
+    - Red (#EF4444)
+    - Cyan (#06B6D4)
+    - Lime (#84CC16)
+    - Orange (#F97316)
+    - Pink (#EC4899)
+    - Indigo (#6366F1)
+  </Step>
+  
+  <Step title="Save parameter">
+    Click **Guardar**. The system:
+    - Auto-generates the next sequential code (e.g., "001", "002", "003")
+    - Validates the color format (#RRGGBB)
+    - Validates name uniqueness
+    - Creates the parameter
+  </Step>
+</Steps>
+
+<Info>
+  The `codigo` field is automatically generated as a 3-digit sequential number (001, 002, etc.). You don't need to provide it.
+</Info>
+
+### Editing a Parameter
+
+<Steps>
+  <Step title="Locate parameter">
+    Use the search bar to filter by code, name, or description. Or browse the table rows.
+  </Step>
+  
+  <Step title="Click edit button">
+    Click **Editar** in the actions column of the parameter you want to modify.
+  </Step>
+  
+  <Step title="Update fields">
+    Modify the name, description, or color. The code cannot be changed after creation.
+  </Step>
+  
+  <Step title="Save changes">
+    Click **Guardar**. The same validation rules apply.
+  </Step>
+</Steps>
+
+<Note>
+  You cannot change the `codigo` field after creation. Only `nombre`, `descripcion`, and `color` can be updated.
+</Note>
+
+### Deleting a Parameter
+
+<Warning>
+  You cannot delete a parameter that is currently assigned to products. The system will block deletion and show the number of associated products.
+</Warning>
+
+<Steps>
+  <Step title="Check product count">
+    Look at the "Productos" column in the table. If the count is greater than 0, you must reassign those products first.
+  </Step>
+  
+  <Step title="Click delete button">
+    Click **Eliminar** in the actions column.
+  </Step>
+  
+  <Step title="Confirm deletion">
+    A modal appears showing the parameter name. Click **Confirmar** to proceed.
+  </Step>
+  
+  <Step title="Validation check">
+    The backend verifies no products are using this parameter:
+    - If products exist, deletion is blocked with error message
+    - If no products exist, parameter is permanently deleted
+  </Step>
+</Steps>
+
+### Searching Parameters
+
+The search filters across three fields in real-time:
+
+```javascript
+const filtered = parametros.filter(p =>
+  (p.codigo && p.codigo.toLowerCase().includes(query)) ||
+  (p.nombre && p.nombre.toLowerCase().includes(query)) ||
+  (p.descripcion && p.descripcion.toLowerCase().includes(query))
+);
+```
+
+**Search Examples:**
+- Type "001" to find by code
+- Type "ACTIVO" to find active status
+- Type "transit" to find parameters with transit in description
+
+## Color Palette
+
+The predefined color palette ensures consistency:
+
+<Tabs>
+  <Tab title="Visual Colors">
+    | Color | Hex Code | Common Use |
+    |-------|----------|------------|
+    | 🔵 Blue | #3B82F6 | Default/neutral |
+    | 🟢 Green | #10B981 | Active/available |
+    | 🟡 Amber | #F59E0B | Warning/attention |
+    | 🟣 Purple | #8B5CF6 | Premium/special |
+    | 🔴 Red | #EF4444 | Inactive/discontinued |
+    | 🔷 Cyan | #06B6D4 | Processing/transit |
+    | 🟢 Lime | #84CC16 | Success/approved |
+    | 🟠 Orange | #F97316 | Pending/review |
+    | 🩷 Pink | #EC4899 | Featured/highlight |
+    | 🟦 Indigo | #6366F1 | Reserved/allocated |
+  </Tab>
+  
+  <Tab title="Implementation">
+    ```javascript
+    // From parametros.js:241
+    const PALETTE = [
+      '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EF4444',
+      '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1'
+    ];
+    
+    // Dynamic palette rendering
+    paramColorPalette.innerHTML = PALETTE.map(c => 
+      `<button type="button" 
+               class="color-swatch" 
+               data-color="${c}" 
+               style="background:${c}">
+       </button>`
+    ).join('');
+    ```
+  </Tab>
+</Tabs>
+
+## Product Integration
+
+Parameters are tightly integrated with the products table:
+
+### Product Count Tracking
+
+**Source:** `parametros.php:16-27`
+
+The GET endpoint performs a LEFT JOIN to count products:
+
+```php
+SELECT par.id, par.codigo, par.nombre, par.descripcion, par.color,
+       COUNT(prod.id) AS productos_count
+FROM parametros par
+LEFT JOIN productos prod ON prod.parametro_id = par.id
+GROUP BY par.id, par.codigo, par.nombre, par.descripcion, par.color
+ORDER BY par.id
+```
+
+This provides real-time product counts without additional queries.
+
+### Deletion Protection
+
+**Source:** `parametros.php:98-101`
+
+```php
+$cnt = 0;
+$rc = $conn->query("SELECT COUNT(*) AS c FROM productos WHERE parametro_id=$id");
+if ($rc) { 
+  $cnt = intval($rc->fetch_assoc()['c']); 
+}
+if ($cnt > 0) { 
+  echo json_encode([
+    'error' => 'No se puede eliminar: tiene productos asociados'
+  ]);
+  exit;
+}
+```
+
+This prevents orphaned products by blocking parameter deletion.
+
+### Display in UI
+
+**Source:** `parametros.js:132`
+
+The product count displays in the table:
+
+```javascript
+<tr>
+  <td>${p.codigo}</td>
+  <td>
+    <span class="badge" 
+          style="background:${p.color}; color:#fff;">
+      ${p.nombre}
+    </span>
+  </td>
+  <td>${p.descripcion || ''}</td>
+  <td>${p.productos_count ?? 0}</td>
+  <td class="actions">...</td>
+</tr>
+```
+
+## API Reference
+
+```
+GET    /database/parametros.php      # List all parameters with product counts
+POST   /database/parametros.php      # Create new parameter
+PUT    /database/parametros.php      # Update parameter
+DELETE /database/parametros.php      # Delete parameter (if no products)
+```
+
+### Get All Parameters
+
+<Tabs>
+  <Tab title="Request">
+    ```javascript
+    const response = await fetch('database/parametros.php?_=' + Date.now(), {
+      cache: 'no-store'
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Response">
+    ```json
+    {
+      "success": true,
+      "data": [
+        {
+          "id": "1",
+          "codigo": "001",
+          "nombre": "ACTIVO",
+          "descripcion": "Productos activos en inventario",
+          "color": "#10B981",
+          "productos_count": "45"
+        },
+        {
+          "id": "2",
+          "codigo": "002",
+          "nombre": "INACTIVO",
+          "descripcion": "Productos descontinuados",
+          "color": "#EF4444",
+          "productos_count": "12"
+        }
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Create Parameter
+
+<Tabs>
+  <Tab title="Request">
+    ```javascript
+    const response = await fetch('database/parametros.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre: 'EN TRÁNSITO',
+        descripcion: 'Productos en movimiento entre bodegas',
+        color: '#06B6D4'
+        // codigo is auto-generated
+      })
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Success Response">
+    ```json
+    {
+      "success": true,
+      "id": 3,
+      "message": "Parámetro creado"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Error Response (Invalid Color)">
+    ```json
+    {
+      "success": false,
+      "error": "Color inválido. Use formato #RRGGBB"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Error Response (Duplicate Name)">
+    ```json
+    {
+      "success": false,
+      "error": "Código o nombre ya existe"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Update Parameter
+
+<Tabs>
+  <Tab title="Request">
+    ```javascript
+    const response = await fetch('database/parametros.php', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: 3,
+        nombre: 'TRANSFERENCIA',
+        descripcion: 'En proceso de transferencia',
+        color: '#8B5CF6'
+      })
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Success Response">
+    ```json
+    {
+      "success": true,
+      "message": "Parámetro actualizado"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Delete Parameter
+
+<Tabs>
+  <Tab title="Request">
+    ```javascript
+    const response = await fetch('database/parametros.php', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: 3 })
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Success Response">
+    ```json
+    {
+      "success": true,
+      "message": "Parámetro eliminado"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Error Response (Has Products)">
+    ```json
+    {
+      "success": false,
+      "error": "No se puede eliminar: tiene productos asociados"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Validation Rules
+
+<AccordionGroup>
+  <Accordion title="Nombre Validation">
+    **Required Field**
+    
+    - Cannot be empty
+    - Maximum 50 characters
+    - Must be unique across all parameters
+    - Trimmed of whitespace
+    
+    **Frontend:** `parametros.js:199`
+    ```javascript
+    if (!body.nombre) {
+      mostrarAlerta('El estado es obligatorio', 'error');
+      return;
+    }
+    ```
+    
+    **Backend:** `parametros.php:38-39`
+    ```php
+    if ($nombre === '') {
+      echo json_encode(['error'=>'El nombre es obligatorio']);
+    }
+    if (strlen($nombre) > 50) {
+      echo json_encode(['error'=>'Longitud de nombre inválida']);
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Color Validation">
+    **Hex Format Required**
+    
+    - Must match pattern: `^#[0-9A-Fa-f]{6}$`
+    - Exactly 7 characters: # followed by 6 hex digits
+    - Default: #3B82F6 if not provided
+    
+    **Backend:** `parametros.php:41`
+    ```php
+    if (!preg_match('/^#[0-9A-Fa-f]{6}$/', $color)) {
+      echo json_encode(['error'=>'Color inválido. Use formato #RRGGBB']);
+    }
+    ```
+    
+    Valid examples:
+    - ✅ `#3B82F6`
+    - ✅ `#10b981` (lowercase accepted)
+    - ❌ `3B82F6` (missing #)
+    - ❌ `#3B8` (too short)
+    - ❌ `#GGGGGG` (invalid hex)
+  </Accordion>
+  
+  <Accordion title="Codigo Auto-Generation">
+    **Automatic Sequential Codes**
+    
+    If codigo is empty, the system generates the next sequential 3-digit code:
+    
+    **Backend:** `parametros.php:43-47`
+    ```php
+    if ($codigo === '') {
+      $resNext = $conn->query(
+        "SELECT LPAD(COALESCE(MAX(CAST(codigo AS UNSIGNED)),0)+1,3,'0') 
+         AS next_codigo FROM parametros"
+      );
+      $codigo = $rowNext['next_codigo'] ?? '001';
+    }
+    ```
+    
+    This ensures:
+    - First parameter gets "001"
+    - Next gets "002", then "003", etc.
+    - Leading zeros are preserved
+    - Gaps from deletions are not filled
+  </Accordion>
+  
+  <Accordion title="Uniqueness Validation">
+    **Unique Codigo and Nombre**
+    
+    Both codigo and nombre must be unique:
+    
+    **Backend:** `parametros.php:53-54`
+    ```php
+    $chk = $conn->query(
+      "SELECT 1 FROM parametros 
+       WHERE codigo='$codigo' OR nombre='$nombre' LIMIT 1"
+    );
+    if ($chk && $chk->num_rows > 0) {
+      echo json_encode(['error'=>'Código o nombre ya existe']);
+    }
+    ```
+    
+    For updates (excludes current record):
+    ```php
+    WHERE nombre='$nombre' AND id!=$id
+    ```
+  </Accordion>
+  
+  <Accordion title="Deletion Validation">
+    **Product Association Check**
+    
+    Cannot delete if products reference this parameter:
+    
+    **Backend:** `parametros.php:98-101`
+    ```php
+    $cnt = $conn->query(
+      "SELECT COUNT(*) AS c FROM productos WHERE parametro_id=$id"
+    )->fetch_assoc()['c'];
+    
+    if ($cnt > 0) {
+      echo json_encode([
+        'error' => 'No se puede eliminar: tiene productos asociados'
+      ]);
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## UI Components
+
+### Table Display
+
+Parameters are shown in a table format:
+
+| Código | Estado | Descripción | Productos | Acciones |
+|--------|--------|-------------|-----------|----------|
+| 001 | <span style="background:#10B981;color:#fff;padding:2px 8px;border-radius:4px;">ACTIVO</span> | Productos activos | 45 | Editar Eliminar |
+| 002 | <span style="background:#EF4444;color:#fff;padding:2px 8px;border-radius:4px;">INACTIVO</span> | Descontinuados | 12 | Editar Eliminar |
+
+### Color Palette Picker
+
+**Source:** `parametros.js:243-255`
+
+The color picker is dynamically generated:
+
+```javascript
+paramColorPalette.innerHTML = PALETTE.map(c => 
+  `<button type="button" 
+           class="color-swatch" 
+           data-color="${c}" 
+           style="background:${c}">
+   </button>`
+).join('');
+
+paramColorPalette.addEventListener('click', (e) => {
+  const btn = e.target.closest('.color-swatch');
+  if (!btn) return;
+  const color = btn.getAttribute('data-color');
+  paramColor.value = color;
+  selectPaletteColor(color);
+});
+```
+
+### Color Swatch Selection
+
+**Source:** `parametros.js:257-263`
+
+Visual feedback for selected color:
+
+```javascript
+function selectPaletteColor(color) {
+  [...paramColorPalette.querySelectorAll('.color-swatch')].forEach(el => {
+    const c = el.getAttribute('data-color');
+    el.classList.toggle('selected', 
+      c && c.toUpperCase() === (color || '').toUpperCase()
+    );
+  });
+}
+```
+
+Selected swatches get a visual indicator (border, shadow, or checkmark).
+
+### Empty State
+
+When no parameters exist:
+
+```html
+<tr>
+  <td colspan="5" style="text-align:center; color:#6b7280; padding:20px;">
+    No hay parámetros registrados
+  </td>
+</tr>
+```
+
+## Technical Implementation
+
+### Frontend (parametros.js)
+
+**Key Functions:**
+
+- `cargarParametros()` - Fetches all parameters with product counts (line 69)
+- `crearParametro(body)` - POST new parameter (line 86)
+- `actualizarParametro(id, body)` - PUT update (line 95)
+- `eliminarParametro()` - DELETE with validation (line 104)
+- `initColorPalette()` - Renders color picker (line 243)
+- `selectPaletteColor(color)` - Highlights selected color (line 257)
+- `filtrarParametros()` - Multi-field search (line 148)
+
+**Modal Management:**
+
+```javascript
+// Open modal with default color
+function abrirModalNuevoParametro() {
+  parametroEditando = null;
+  modalTitleParametro.textContent = 'Nuevo Parámetro';
+  formParametro.reset();
+  const defaultColor = '#3B82F6';
+  paramColor.value = defaultColor;
+  selectPaletteColor(defaultColor);
+  modalOverlayParametro.classList.add('active');
+  paramNombre.focus();
+}
+```
+
+### Backend (parametros.php)
+
+**Database Table:** `parametros`
+
+**Key Operations:**
+
+- **Line 16-27**: GET with LEFT JOIN and GROUP BY for product counts
+- **Line 30-60**: POST - Auto-generates codigo, validates color format
+- **Line 43-47**: Sequential code generation logic
+- **Line 53-54**: Uniqueness check for codigo and nombre
+- **Line 63-88**: PUT - Updates all fields except codigo
+- **Line 91-107**: DELETE - Validates no products before deletion
+
+**Code Generation Algorithm:**
+
+```php
+// Find maximum existing code, cast to integer, add 1, pad to 3 digits
+SELECT LPAD(
+  COALESCE(MAX(CAST(codigo AS UNSIGNED)), 0) + 1,
+  3,
+  '0'
+) AS next_codigo 
+FROM parametros
+```
+
+This ensures:
+- "001" for first parameter
+- "002", "003", etc. for subsequent ones
+- Handles deletions gracefully (doesn't reuse codes)
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Inventory Status" icon="boxes-stacked">
+    Track product availability: ACTIVO, INACTIVO, AGOTADO, DESCONTINUADO
+  </Card>
+  
+  <Card title="Quality Levels" icon="star">
+    Classify product quality: PREMIUM, ESTÁNDAR, ECONÓMICO
+  </Card>
+  
+  <Card title="Stock Movement" icon="truck-fast">
+    Track product flow: EN TRÁNSITO, EN BODEGA, EN EXHIBICIÓN
+  </Card>
+  
+  <Card title="Supplier Status" icon="handshake">
+    Categorize suppliers: PREFERIDO, ACTIVO, SUSPENDIDO, EVALUACIÓN
+  </Card>
+  
+  <Card title="Product Condition" icon="clipboard-check">
+    Describe item state: NUEVO, REACONDICIONADO, USADO, DAÑADO
+  </Card>
+  
+  <Card title="Custom Categories" icon="list-check">
+    Create any classification system your business needs
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Meaningful Names" icon="tag">
+    Use clear, descriptive names that communicate the parameter's purpose
+  </Card>
+  
+  <Card title="Consistent Colors" icon="palette">
+    Establish color conventions (e.g., green = active, red = inactive)
+  </Card>
+  
+  <Card title="Document Usage" icon="book">
+    Use the description field to explain when and how to use each parameter
+  </Card>
+  
+  <Card title="Plan Before Creating" icon="lightbulb">
+    Design your parameter set before assigning them to products
+  </Card>
+  
+  <Card title="Regular Audits" icon="list-check">
+    Review parameters periodically and remove unused ones
+  </Card>
+  
+  <Card title="Limit Quantity" icon="gauge-high">
+    Keep the parameter list manageable (typically 5-10 per category)
+  </Card>
+</CardGroup>
+
+## Common Error Messages
+
+| Error Message | Cause | Solution |
+|---------------|-------|----------|
+| "El estado es obligatorio" | Empty nombre field | Enter a parameter name |
+| "Longitud de nombre inválida" | Name exceeds 50 characters | Shorten the name |
+| "Color inválido. Use formato #RRGGBB" | Invalid hex color | Use format #3B82F6 |
+| "Código o nombre ya existe" | Duplicate codigo or nombre | Choose unique values |
+| "No se puede eliminar: tiene productos asociados" | Products using this parameter | Reassign products first |
+| "No encontrado" | Invalid parameter ID | Refresh page and retry |
+| "Datos inválidos" | Malformed JSON request | Check request format |
+| "ID y nombre son obligatorios" | Missing required fields on update | Provide id and nombre |
+
+## Integration Examples
+
+### Loading Parameters in Supplier Form
+
+**Source:** `proveedores.js:61-76`
+
+```javascript
+async function cargarParametrosEstado() {
+  try {
+    const url = `${API_PARAM}?_=${Date.now()}`;
+    const resp = await fetch(url, { cache: 'no-store' });
+    const data = await resp.json();
+    if (data.success) {
+      parametrosEstados = data.data;
+      poblarSelectEstados();
+    }
+  } catch(e) { /* handle error */ }
+}
+
+function poblarSelectEstados() {
+  provEstado.innerHTML = parametrosEstados.map(p => 
+    `<option value="${p.id}" data-color="${p.color}">
+      ${p.nombre}
+    </option>`
+  ).join('');
+}
+```
+
+### Displaying Parameter Badges
+
+Consistent badge styling across modules:
+
+```javascript
+<span class="badge" 
+      style="background:${parameter.color}; color:#ffffff;">
+  ${parameter.nombre}
+</span>
+```
+
+This creates color-coded visual indicators that match the parameter's assigned color.

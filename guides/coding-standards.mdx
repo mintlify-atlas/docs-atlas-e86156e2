@@ -1,0 +1,593 @@
+---
+title: 'Coding Standards'
+description: 'Code conventions and best practices used in Pro Stock Tool'
+---
+
+## Overview
+
+Pro Stock Tool follows consistent coding patterns across frontend JavaScript, backend PHP, and HTML templates. This guide documents the established conventions observed in the codebase.
+
+## JavaScript Conventions
+
+### File Structure Pattern
+
+All JavaScript controllers follow a consistent organizational structure:
+
+<CodeGroup>
+```javascript Standard Controller Template
+// 1. API Configuration
+const API_URL = 'http://localhost/Pro-Stock-Tool/database/{module}.php';
+
+// 2. Global Variables
+let items = [];
+let editingItem = null;
+let itemToDelete = null;
+
+// 3. DOM Element References
+const modalOverlay = document.getElementById('modalOverlay');
+const formElement = document.getElementById('formElement');
+const listContainer = document.getElementById('listContainer');
+
+// 4. Event Listeners
+document.addEventListener('DOMContentLoaded', () => {
+    loadData();
+    initializeEventListeners();
+});
+
+// 5. API Functions
+async function loadData() { /* ... */ }
+async function createItem(data) { /* ... */ }
+async function updateItem(id, data) { /* ... */ }
+async function deleteItem() { /* ... */ }
+
+// 6. UI Functions
+function renderItems(items) { /* ... */ }
+function openModal() { /* ... */ }
+function closeModal() { /* ... */ }
+
+// 7. Helper Functions
+function showAlert(message, type) { /* ... */ }
+function validateInput(data) { /* ... */ }
+```
+</CodeGroup>
+
+<Accordion title="View Complete Example: bodega.js">
+```javascript controllers/bodega.js
+// Configuration
+const API_URL = 'http://localhost/Pro-Stock-Tool/database/bodega.php';
+
+// Global state
+let bodegas = [];
+let bodegaEditando = null;
+let bodegaParaEliminar = null;
+
+// DOM elements
+const modalOverlay = document.getElementById('modalOverlay');
+const formBodega = document.getElementById('formBodega');
+const listaBodegas = document.getElementById('listaBodegas');
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    cargarBodegas();
+    inicializarEventListeners();
+});
+
+function inicializarEventListeners() {
+    btnNuevaBodega.addEventListener('click', abrirModalNuevo);
+    btnCancelar.addEventListener('click', cerrarModal);
+    formBodega.addEventListener('submit', guardarBodega);
+    buscarBodega.addEventListener('input', filtrarBodegas);
+    
+    // Event delegation for dynamic buttons
+    listaBodegas.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        
+        const id = Number(btn.getAttribute('data-id'));
+        const action = btn.getAttribute('data-action');
+        
+        if (action === 'edit') editarBodega(id);
+        else if (action === 'delete') abrirModalEliminar(id);
+    });
+}
+```
+</Accordion>
+
+### Naming Conventions
+
+<CardGroup cols={2}>
+  <Card title="Variables" icon="code">
+    **camelCase** for all variables
+    ```javascript
+    let bodegaEditando;
+    const listaBodegas;
+    ```
+  </Card>
+  <Card title="Functions" icon="function">
+    **camelCase** with descriptive verbs
+    ```javascript
+    function cargarBodegas()
+    function abrirModalNuevo()
+    function guardarBodega()
+    ```
+  </Card>
+  <Card title="Constants" icon="constant">
+    **UPPER_SNAKE_CASE** for true constants
+    ```javascript
+    const API_URL = '...';
+    ```
+  </Card>
+  <Card title="DOM Elements" icon="browser">
+    Descriptive names matching IDs
+    ```javascript
+    const modalOverlay = 
+      document.getElementById('modalOverlay');
+    ```
+  </Card>
+</CardGroup>
+
+### Async/Await Pattern
+
+All API calls use modern `async/await` syntax with try-catch error handling:
+
+```javascript Standard API Call Pattern
+async function cargarBodegas() {
+    try {
+        const url = `${API_URL}?_=${Date.now()}`; // Cache busting
+        const response = await fetch(url, { cache: 'no-store' });
+        const data = await response.json();
+        
+        if (data.success) {
+            bodegas = data.data;
+            renderizarBodegas(bodegas);
+            actualizarEstadisticas();
+        } else {
+            mostrarAlerta('Error al cargar bodegas: ' + data.error, 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarAlerta('Error de conexión al cargar bodegas', 'error');
+    }
+}
+```
+
+<Note>
+**Cache Busting**: API URLs include `?_=${Date.now()}` to prevent browser caching of GET requests.
+</Note>
+
+### Event Delegation
+
+Dynamic elements use event delegation on parent containers:
+
+```javascript Event Delegation Pattern
+listaBodegas.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    
+    const id = Number(btn.getAttribute('data-id'));
+    if (Number.isNaN(id)) return;
+    
+    const action = btn.getAttribute('data-action');
+    
+    if (action === 'edit') {
+        editarBodega(id);
+    } else if (action === 'delete') {
+        abrirModalEliminar(id);
+    }
+});
+```
+
+### Form Handling
+
+```javascript Form Submission Pattern
+function guardarBodega(e) {
+    e.preventDefault();
+    
+    const datos = {
+        nombre: bodegaNombre.value.trim(),
+        descripcion: bodegaDescripcion.value.trim()
+    };
+    
+    // Client-side validation
+    if (!datos.nombre) {
+        mostrarAlerta('El nombre es obligatorio', 'error');
+        bodegaNombre.focus();
+        return;
+    }
+    
+    if (bodegaEditando) {
+        actualizarBodega(bodegaEditando.id, datos);
+    } else {
+        crearBodega(datos);
+    }
+}
+```
+
+## PHP Backend Conventions
+
+### Endpoint Structure
+
+All PHP endpoints follow a RESTful pattern with HTTP method routing:
+
+```php Standard PHP Endpoint Structure
+<?php
+// 1. Headers
+header('Content-Type: application/json; charset=utf-8');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+
+// 2. OPTIONS Preflight
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
+// 3. Database Connection
+require 'conexion.php';
+
+// 4. Method Routing
+$method = $_SERVER['REQUEST_METHOD'];
+
+try {
+    switch ($method) {
+        case 'GET':
+            // Retrieve data
+            break;
+        case 'POST':
+            // Create data
+            break;
+        case 'PUT':
+            // Update data
+            break;
+        case 'DELETE':
+            // Delete data
+            break;
+        default:
+            echo json_encode(['success' => false, 'error' => 'Método no permitido']);
+            break;
+    }
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'error' => 'Error del servidor: ' . $e->getMessage()]);
+}
+
+$conn->close();
+?>
+```
+
+### Input Validation Pattern
+
+```php Validation & Sanitization
+// 1. Parse JSON input
+$input = file_get_contents('php://input');
+$data = json_decode($input, true);
+
+if (!$data) {
+    echo json_encode(['success' => false, 'error' => 'Datos inválidos']);
+    exit;
+}
+
+// 2. Extract and trim values
+$nombre = isset($data['nombre']) ? trim($data['nombre']) : '';
+$descripcion = isset($data['descripcion']) ? trim($data['descripcion']) : '';
+
+// 3. Validate required fields
+if (empty($nombre)) {
+    echo json_encode(['success' => false, 'error' => 'El nombre es obligatorio']);
+    exit;
+}
+
+// 4. Validate length constraints
+if (strlen($nombre) > 100) {
+    echo json_encode(['success' => false, 'error' => 'El nombre no puede superar 100 caracteres']);
+    exit;
+}
+
+// 5. Escape for SQL
+$nombre = $conn->real_escape_string($nombre);
+$descripcion = $conn->real_escape_string($descripcion);
+```
+
+<Warning>
+**Security Note**: Always use `real_escape_string()` or prepared statements to prevent SQL injection attacks.
+</Warning>
+
+### Response Format
+
+All API responses use consistent JSON structure:
+
+```php Success Response
+echo json_encode([
+    'success' => true,
+    'data' => $result,
+    'message' => 'Operación exitosa'
+], JSON_UNESCAPED_UNICODE);
+```
+
+```php Error Response
+echo json_encode([
+    'success' => false,
+    'error' => 'Descripción del error'
+], JSON_UNESCAPED_UNICODE);
+```
+
+<Tip>
+`JSON_UNESCAPED_UNICODE` ensures Spanish characters (á, é, í, ó, ú, ñ) are properly encoded.
+</Tip>
+
+### Database Query Patterns
+
+<Accordion title="GET - Retrieve Records">
+```php GET Pattern
+case 'GET':
+    $sql = "SELECT id, nombre, descripcion FROM bodegas ORDER BY id DESC";
+    $result = $conn->query($sql);
+    $bodegas = [];
+    
+    if ($result && $result->num_rows > 0) {
+        while ($row = $result->fetch_assoc()) {
+            $bodegas[] = $row;
+        }
+    }
+    
+    echo json_encode(['success' => true, 'data' => $bodegas]);
+    break;
+```
+</Accordion>
+
+<Accordion title="POST - Create Record">
+```php POST Pattern
+case 'POST':
+    // Validate and escape input
+    $nombre = $conn->real_escape_string($nombre);
+    $descripcion = $conn->real_escape_string($descripcion);
+    
+    // Check for duplicates
+    $checkSql = "SELECT id FROM bodegas WHERE nombre = '$nombre'";
+    $checkResult = $conn->query($checkSql);
+    
+    if ($checkResult && $checkResult->num_rows > 0) {
+        echo json_encode(['success' => false, 'error' => 'Ya existe una bodega con este nombre']);
+        exit;
+    }
+    
+    // Insert
+    $sql = "INSERT INTO bodegas (nombre, descripcion, fecha_creacion) 
+            VALUES ('$nombre', '$descripcion', NOW())";
+    
+    if ($conn->query($sql)) {
+        echo json_encode([
+            'success' => true,
+            'id' => $conn->insert_id,
+            'message' => 'Bodega creada exitosamente'
+        ]);
+    }
+    break;
+```
+</Accordion>
+
+<Accordion title="PUT - Update Record">
+```php PUT Pattern
+case 'PUT':
+    $id = isset($data['id']) ? intval($data['id']) : 0;
+    
+    if ($id <= 0) {
+        echo json_encode(['success' => false, 'error' => 'ID inválido']);
+        exit;
+    }
+    
+    // Verify record exists
+    $checkSql = "SELECT id FROM bodegas WHERE id = $id";
+    $checkResult = $conn->query($checkSql);
+    
+    if (!$checkResult || $checkResult->num_rows === 0) {
+        echo json_encode(['success' => false, 'error' => 'Bodega no encontrada']);
+        exit;
+    }
+    
+    // Update
+    $sql = "UPDATE bodegas SET 
+            nombre = '$nombre',
+            descripcion = '$descripcion',
+            fecha_actualizacion = NOW()
+            WHERE id = $id";
+    
+    if ($conn->query($sql)) {
+        echo json_encode(['success' => true, 'message' => 'Bodega actualizada exitosamente']);
+    }
+    break;
+```
+</Accordion>
+
+<Accordion title="DELETE - Remove Record">
+```php DELETE Pattern
+case 'DELETE':
+    $id = isset($data['id']) ? intval($data['id']) : 0;
+    
+    // Verify record exists
+    $checkSql = "SELECT id FROM bodegas WHERE id = $id";
+    $checkResult = $conn->query($checkSql);
+    
+    if (!$checkResult || $checkResult->num_rows === 0) {
+        echo json_encode(['success' => false, 'error' => 'Bodega no encontrada']);
+        exit;
+    }
+    
+    // Check for foreign key constraints
+    $productCheckSql = "SELECT COUNT(*) as count FROM productos WHERE bodega_id = $id";
+    $productResult = $conn->query($productCheckSql);
+    
+    if ($productResult) {
+        $productCount = $productResult->fetch_assoc()['count'];
+        if ($productCount > 0) {
+            echo json_encode(['success' => false, 'error' => "No se puede eliminar. Tiene $productCount producto(s) asociado(s)"]);
+            exit;
+        }
+    }
+    
+    // Delete
+    $sql = "DELETE FROM bodegas WHERE id = $id";
+    
+    if ($conn->query($sql)) {
+        echo json_encode(['success' => true, 'message' => 'Bodega eliminada exitosamente']);
+    }
+    break;
+```
+</Accordion>
+
+## HTML Conventions
+
+### Page Structure
+
+```html Standard HTML Template
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module Name - Pro Stock Tool</title>
+    <link rel="stylesheet" href="../styles/header-footer.css">
+    <link rel="stylesheet" href="../styles/module.css">
+</head>
+<body>
+    <main>
+        <section class="panel-module">
+            <!-- Content -->
+        </section>
+        
+        <!-- Modals -->
+        <div id="modalOverlay" class="modal-overlay" aria-hidden="true">
+            <!-- Modal content -->
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="../controllers/header-footer.js"></script>
+    <script src="../controllers/module.js"></script>
+</body>
+</html>
+```
+
+### Accessibility
+
+<CardGroup cols={2}>
+  <Card title="ARIA Attributes" icon="universal-access">
+    ```html
+    <div id="modal" 
+         aria-hidden="true" 
+         role="dialog">
+    ```
+  </Card>
+  <Card title="Semantic HTML" icon="code">
+    ```html
+    <main>
+      <section>
+        <form>
+    ```
+  </Card>
+  <Card title="Labels" icon="tag">
+    ```html
+    <label for="nombre">Nombre</label>
+    <input id="nombre" type="text">
+    ```
+  </Card>
+  <Card title="Required Fields" icon="asterisk">
+    ```html
+    <label>Nombre<span class="required">*</span></label>
+    ```
+  </Card>
+</CardGroup>
+
+## CSS Conventions
+
+### Class Naming
+
+```css BEM-inspired naming
+/* Block */
+.bodega-card { }
+
+/* Element */
+.bodega-card__header { }
+.bodega-card__title { }
+.bodega-card__actions { }
+
+/* Modifier */
+.btn-primary { }
+.btn-delete { }
+.btn-cancel { }
+
+/* State */
+.modal-overlay.active { }
+.alerta-notificacion.show { }
+```
+
+### Color Variables
+
+```css Brand Colors
+/* Primary Blue */
+#2e6df6
+#4a90e2
+#1e4db8
+
+/* Semantic Colors */
+.success { color: #28a745; }
+.error { color: #dc3545; }
+.warning { color: #ffc107; }
+```
+
+## Code Comments
+
+<CodeGroup>
+```javascript Section Separators
+// ==================== FUNCIONES DE API ====================
+
+// ==================== FUNCIONES DE UI ====================
+
+// ==================== MODAL PRINCIPAL ====================
+
+// ==================== SISTEMA DE ALERTAS ====================
+```
+
+```php Inline Documentation
+// 1. Headers and CORS configuration
+// 2. OPTIONS Preflight handling
+// 3. Database connection
+// 4. Method routing and business logic
+```
+</CodeGroup>
+
+## Best Practices Summary
+
+<CardGroup cols={2}>
+  <Card title="Consistent Patterns" icon="clone">
+    Follow established patterns for similar functionality across modules
+  </Card>
+  <Card title="Error Handling" icon="shield">
+    Always use try-catch blocks and validate user input
+  </Card>
+  <Card title="Security First" icon="lock">
+    Sanitize inputs, escape SQL queries, use HTTPS in production
+  </Card>
+  <Card title="User Feedback" icon="comment">
+    Show clear success/error messages in Spanish for all operations
+  </Card>
+  <Card title="Separation of Concerns" icon="layer-group">
+    Keep business logic, presentation, and data access separate
+  </Card>
+  <Card title="Code Reusability" icon="recycle">
+    Use shared components like `header-footer.js` across pages
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Project Structure" icon="folder-tree" href="/guides/project-structure">
+    Understand the folder organization
+  </Card>
+  <Card title="Troubleshooting" icon="wrench" href="/guides/troubleshooting">
+    Common issues and solutions
+  </Card>
+</CardGroup>

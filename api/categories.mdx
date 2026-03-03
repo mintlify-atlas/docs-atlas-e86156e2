@@ -1,0 +1,341 @@
+---
+title: Categories API
+description: Manage product categories with colors and status
+---
+
+## Endpoint
+
+```
+/database/categorias.php
+```
+
+## Get All Categories
+
+Retrieve all product categories ordered by ID (newest first).
+
+```bash
+curl -X GET https://your-domain.com/database/categorias.php
+```
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "data": [
+    {
+      "id": 3,
+      "nombre": "Electrónica",
+      "descripcion": "Productos electrónicos y tecnología",
+      "color": "#2e6df6",
+      "estado": "ACTIVO",
+      "fecha_creacion": "2026-03-01 10:30:00",
+      "fecha_actualizacion": null
+    },
+    {
+      "id": 2,
+      "nombre": "Ropa",
+      "descripcion": "Prendas de vestir",
+      "color": "#ff6b6b",
+      "estado": "ACTIVO",
+      "fecha_creacion": "2026-02-28 14:20:00",
+      "fecha_actualizacion": null
+    }
+  ]
+}
+```
+</ResponseExample>
+
+### Response Fields
+
+<ResponseField name="id" type="integer">
+  Unique category identifier
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  Category name (max 50 characters)
+</ResponseField>
+
+<ResponseField name="descripcion" type="string">
+  Category description (max 200 characters)
+</ResponseField>
+
+<ResponseField name="color" type="string">
+  Hex color code for UI display (e.g., "#2e6df6")
+</ResponseField>
+
+<ResponseField name="estado" type="string">
+  Category status (e.g., "ACTIVO", "INACTIVO")
+</ResponseField>
+
+<ResponseField name="fecha_creacion" type="datetime">
+  Creation timestamp
+</ResponseField>
+
+<ResponseField name="fecha_actualizacion" type="datetime">
+  Last update timestamp (null if never updated)
+</ResponseField>
+
+---
+
+## Create Category
+
+Create a new product category.
+
+```bash
+curl -X POST https://your-domain.com/database/categorias.php \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nombre": "Electrónica",
+    "descripcion": "Productos electrónicos y tecnología",
+    "color": "#2e6df6",
+    "estado": "ACTIVO"
+  }'
+```
+
+### Request Parameters
+
+<ParamField body="nombre" type="string" required>
+  Category name (max 50 characters, must be unique)
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Category description (max 200 characters)
+</ParamField>
+
+<ParamField body="color" type="string" default="#2e6df6">
+  Hex color code for UI display
+</ParamField>
+
+<ParamField body="estado" type="string" default="ACTIVO">
+  Category status (e.g., "ACTIVO", "INACTIVO")
+</ParamField>
+
+### Validation Rules
+
+- **nombre**: Required, maximum 50 characters, must be unique
+- **descripcion**: Optional, maximum 200 characters
+- **color**: Optional, defaults to `#2e6df6`
+- **estado**: Optional, defaults to `ACTIVO`
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "id": 5,
+  "message": "Categoría creada exitosamente"
+}
+```
+
+```json Error - Missing Name
+{
+  "success": false,
+  "error": "El nombre es obligatorio"
+}
+```
+
+```json Error - Name Too Long
+{
+  "success": false,
+  "error": "El nombre no puede superar 50 caracteres"
+}
+```
+
+```json Error - Description Too Long
+{
+  "success": false,
+  "error": "La descripción no puede superar 200 caracteres"
+}
+```
+
+```json Error - Duplicate Name
+{
+  "success": false,
+  "error": "Ya existe una categoría con este nombre"
+}
+```
+</ResponseExample>
+
+---
+
+## Update Category
+
+Update an existing category's information.
+
+```bash
+curl -X PUT https://your-domain.com/database/categorias.php \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": 5,
+    "nombre": "Electrónica Actualizada",
+    "descripcion": "Nueva descripción",
+    "color": "#4a90e2",
+    "estado": "ACTIVO"
+  }'
+```
+
+### Request Parameters
+
+<ParamField body="id" type="integer" required>
+  Category ID to update (must be greater than 0)
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  New category name (max 50 characters)
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  New category description (max 200 characters)
+</ParamField>
+
+<ParamField body="color" type="string" default="#2e6df6">
+  New color code
+</ParamField>
+
+<ParamField body="estado" type="string" default="ACTIVO">
+  New category status
+</ParamField>
+
+### Validation Rules
+
+- **id**: Required, must be greater than 0, category must exist
+- **nombre**: Required, max 50 characters, must be unique (excluding current category)
+- **descripcion**: Optional, max 200 characters
+- Updates `fecha_actualizacion` timestamp automatically
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "message": "Categoría actualizada exitosamente"
+}
+```
+
+```json Error - Not Found
+{
+  "success": false,
+  "error": "Categoría no encontrada"
+}
+```
+
+```json Error - Duplicate Name
+{
+  "success": false,
+  "error": "Ya existe otra categoría con este nombre"
+}
+```
+</ResponseExample>
+
+---
+
+## Delete Category
+
+Delete a category from the system.
+
+```bash
+curl -X DELETE https://your-domain.com/database/categorias.php \
+  -H "Content-Type: application/json" \
+  -d '{"id": 5}'
+```
+
+### Request Parameters
+
+<ParamField body="id" type="integer" required>
+  Category ID to delete (must be greater than 0)
+</ParamField>
+
+### Validation Rules
+
+- **id**: Required, must be greater than 0, category must exist
+- Cannot delete if category has associated products
+- Checks `productos` table for foreign key relationships
+- Supports multiple column name patterns: `categoria_id`, `id_categoria`, `categoria`, `categoriaId`
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "message": "Categoría eliminada exitosamente"
+}
+```
+
+```json Error - Invalid ID
+{
+  "success": false,
+  "error": "ID inválido"
+}
+```
+
+```json Error - Not Found
+{
+  "success": false,
+  "error": "Categoría no encontrada"
+}
+```
+
+```json Error - Has Products
+{
+  "success": false,
+  "error": "No se puede eliminar. Tiene 25 producto(s) asociado(s)"
+}
+```
+</ResponseExample>
+
+<Warning>
+  Deleting a category is prevented if it has associated products. You must reassign or delete the products first.
+</Warning>
+
+---
+
+## Advanced Foreign Key Detection
+
+The delete operation includes intelligent foreign key column detection:
+
+<Expandable title="Column Detection Logic">
+  The API searches for foreign key columns in this order of preference:
+  
+  1. `categoria_id` (most common)
+  2. `id_categoria`
+  3. `categoria`
+  4. `categoriaId`
+  
+  This ensures compatibility with different database naming conventions.
+</Expandable>
+
+---
+
+## Database Schema
+
+Categories are stored in the `categorias` table:
+
+```sql
+CREATE TABLE categorias (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(50) NOT NULL UNIQUE,
+  descripcion VARCHAR(200),
+  color VARCHAR(7) DEFAULT '#2e6df6',
+  estado VARCHAR(20) DEFAULT 'ACTIVO',
+  fecha_creacion DATETIME,
+  fecha_actualizacion DATETIME
+);
+```
+
+## Error Codes
+
+| Error Message | Cause | Solution |
+|---------------|-------|----------|
+| `Datos inválidos` | Invalid JSON | Check JSON syntax |
+| `El nombre es obligatorio` | Missing nombre | Include nombre in request |
+| `El nombre no puede superar 50 caracteres` | Name too long | Shorten category name |
+| `La descripción no puede superar 200 caracteres` | Description too long | Shorten description |
+| `Ya existe una categoría con este nombre` | Duplicate name | Use different name |
+| `ID inválido` | Invalid ID | Provide valid ID > 0 |
+| `Categoría no encontrada` | Category doesn't exist | Check category ID |
+| `No se puede eliminar. Tiene X producto(s) asociado(s)` | Has products | Remove products first |

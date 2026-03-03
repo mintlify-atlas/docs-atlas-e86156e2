@@ -1,0 +1,265 @@
+---
+title: Introduction
+description: Welcome to Pro Stock Tool - A comprehensive PHP/JavaScript inventory management system for efficient warehouse operations
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/hero-light.png"
+  alt="Pro Stock Tool Hero Light"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/hero-dark.png"
+  alt="Pro Stock Tool Hero Dark"
+/>
+
+## Welcome to Pro Stock Tool
+
+Pro Stock Tool is a modern, full-stack inventory management system designed to streamline warehouse operations, product tracking, and supplier management. Built with PHP and JavaScript, it provides a robust RESTful API backend with an intuitive, responsive frontend interface.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card
+    title="Warehouse Management"
+    icon="warehouse"
+    href="/features/warehouse-management"
+  >
+    Create and manage multiple warehouses with detailed location tracking and real-time inventory visibility
+  </Card>
+  <Card
+    title="Product Categorization"
+    icon="grid"
+    href="/features/category-management"
+    >
+    Organize products with categories and subcategories, with color-coded visual organization
+  </Card>
+  <Card
+    title="Inventory Tracking"
+    icon="box"
+    href="/features/product-management"
+  >
+    Track stock levels with min/max thresholds, expiration dates, and automated alerts
+  </Card>
+  <Card
+    title="Supplier Management"
+    icon="truck"
+    href="/features/supplier-management"
+  >
+    Manage supplier information, contact details, payment terms, and product associations
+  </Card>
+  <Card
+    title="User Authentication"
+    icon="lock"
+    href="/user-management/authentication"
+  >
+    Secure user registration and login with bcrypt password hashing and session management
+  </Card>
+  <Card
+    title="Real-time Reporting"
+    icon="chart-line"
+    href="/reports/inventory-reports"
+  >
+    Generate inventory reports, track product movements, and analyze warehouse performance
+  </Card>
+  <Card
+    title="RESTful API"
+    icon="code"
+    href="/api/overview"
+  >
+    Complete REST API with JSON responses for all CRUD operations on warehouses, products, and suppliers
+  </Card>
+  <Card
+    title="Product Categorization"
+    icon="grid"
+    href="/features/categories"
+    >
+    Organize products with categories and subcategorories, with color-coded visual organization
+  </Card>
+  <Card
+    title="Inventory Tracking"
+    icon="box"
+    href="/features/inventory"
+  >
+    Track stock levels with min/max thresholds, expiration dates, and automated alerts
+  </Card>
+  <Card
+    title="Supplier Management"
+    icon="truck"
+    href="/features/suppliers"
+  >
+    Manage supplier information, contact details, payment terms, and product associations
+  </Card>
+  <Card
+    title="User Authentication"
+    icon="lock"
+    href="/features/authentication"
+  >
+    Secure user registration and login with bcrypt password hashing and session management
+  </Card>
+  <Card
+    title="Real-time Reporting"
+    icon="chart-line"
+    href="/features/reporting"
+  >
+    Generate inventory reports, track product movements, and analyze warehouse performance
+  </Card>
+  <Card
+    title="RESTful API"
+    icon="code"
+    href="/api-reference/introduction"
+  >
+    Complete REST API with JSON responses for all CRUD operations on warehouses, products, and suppliers
+  </Card>
+  <Card
+    title="Customizable Parameters"
+    icon="sliders"
+    href="/features/parameters"
+  >
+    Define custom product states and attributes with color coding for visual identification
+  </Card>
+</CardGroup>
+
+## Technology Stack
+
+<CardGroup cols={3}>
+  <Card title="Backend" icon="server">
+    **PHP 7.4+**
+    
+    - RESTful API architecture
+    - MySQLi database connectivity
+    - JSON response formatting
+    - CORS support for cross-origin requests
+  </Card>
+  <Card title="Frontend" icon="browser">
+    **HTML5 / CSS3 / JavaScript**
+    
+    - Vanilla JavaScript (ES6+)
+    - Fetch API for HTTP requests
+    - Responsive design
+    - Real-time UI updates
+  </Card>
+  <Card title="Database" icon="database">
+    **MySQL**
+    
+    - Database: `prostocktool`
+    - Relational schema design
+    - Foreign key constraints
+    - Timestamp tracking
+  </Card>
+</CardGroup>
+
+## System Architecture
+
+Pro Stock Tool follows a clean separation of concerns with a three-tier architecture:
+
+```
+┌─────────────────────────────────────────┐
+│         Frontend (View Layer)          │
+│  HTML Templates + JavaScript Controllers│
+└────────────────┬────────────────────────┘
+                 │ HTTP/JSON
+┌────────────────▼────────────────────────┐
+│        Backend (API Layer)              │
+│     PHP REST API Endpoints              │
+└────────────────┬────────────────────────┘
+                 │ MySQLi
+┌────────────────▼────────────────────────┐
+│      Database (Data Layer)              │
+│         MySQL Database                  │
+└─────────────────────────────────────────┘
+```
+
+<Note>
+  **Project Structure**: The application is organized into three main directories:
+  - `/view` - HTML templates and user interface
+  - `/controllers` - JavaScript frontend logic
+  - `/database` - PHP REST API endpoints and database connection
+</Note>
+
+## Quick Example
+
+Here's a simple example of fetching warehouses using the Pro Stock Tool API:
+
+```javascript
+// Fetch all warehouses
+const API_URL = 'http://localhost/Pro-Stock-Tool/database/bodega.php';
+
+const response = await fetch(API_URL, { 
+  cache: 'no-store' 
+});
+
+const data = await response.json();
+
+if (data.success) {
+  console.log('Warehouses:', data.data);
+  // data.data contains array of warehouse objects
+}
+```
+
+## Core Entities
+
+The system manages several core entities:
+
+| Entity | Description | Key Fields |
+|--------|-------------|------------|
+| **Warehouses** (Bodegas) | Physical storage locations | `nombre`, `descripcion`, `fecha_creacion` |
+| **Categories** | Product classification | `nombre`, `descripcion`, `color`, `estado` |
+| **Subcategories** | Secondary classification | `nombre`, `categoria_id` |
+| **Suppliers** (Proveedores) | Vendor information | `nif`, `nombre`, `contacto`, `email`, `terminos` |
+| **Parameters** (Parametros) | Custom product attributes | `codigo`, `nombre`, `color` |
+| **Users** (Usuarios) | System users | `email`, `nombre`, `identidad`, `password` |
+| **Products** | Inventory items | `nombre`, `bodega_id`, `categoria_id`, `proveedor_id` |
+
+## Getting Started
+
+<CardGroup cols={2}>
+  <Card
+    title="Quick Start"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Get Pro Stock Tool up and running in minutes with our quick start guide
+  </Card>
+  <Card
+    title="Installation"
+    icon="download"
+    href="/installation"
+  >
+    Detailed installation instructions for setting up your development environment
+  </Card>
+  <Card
+    title="API Reference"
+    icon="book"
+    href="/api/overview"
+  >
+    Complete API documentation for all endpoints and operations
+  </Card>
+  <Card
+    title="Configuration"
+    icon="gear"
+    href="/guides/database-configuration"
+  >
+    Learn how to configure and customize Pro Stock Tool for your needs
+  </Card>
+  <Card
+    title="Configuration"
+    icon="gear"
+    href="/configuration"
+  >
+    Learn how to configure database connections and application settings
+  </Card>
+</CardGroup>
+
+## Need Help?
+
+If you need assistance or have questions:
+
+- Check the [API Reference](/api/overview) for detailed endpoint documentation
+- Review the [Configuration Guide](/guides/database-configuration) for setup instructions
+- Explore the [Features](/features/warehouse-management) section for in-depth feature explanations
+
+<Warning>
+  **Security Note**: The default database configuration uses `root` with no password. Always change this in production environments and implement proper access controls.
+</Warning>

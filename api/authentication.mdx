@@ -1,0 +1,133 @@
+---
+title: Authentication
+description: API authentication and security requirements
+---
+
+## Current Authentication Status
+
+The current API endpoints do **not** require authentication headers. All endpoints are publicly accessible.
+
+<Warning>
+  **Production Warning**: The API currently has no authentication mechanism. All endpoints accept requests without credentials. Implement proper authentication and authorization before deploying to production.
+</Warning>
+
+## User Registration
+
+The API provides a user registration endpoint that can be used to implement authentication in the future.
+
+### Register New User
+
+```bash
+curl -X POST https://your-domain.com/database/registro.php \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "nombre": "John Doe",
+    "identidad": "123456789",
+    "contrasena": "securePassword123"
+  }'
+```
+
+### Request Parameters
+
+<ParamField body="email" type="string" required>
+  User email address (must be valid email format)
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  User full name (2-100 characters)
+</ParamField>
+
+<ParamField body="identidad" type="string" required>
+  User identity number (6-20 numeric digits)
+</ParamField>
+
+<ParamField body="contrasena" type="string" required>
+  User password (minimum 6 characters)
+</ParamField>
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "message": "Registro exitoso"
+}
+```
+
+```json Error - Validation
+{
+  "success": false,
+  "error": "Email inválido"
+}
+```
+
+```json Error - Duplicate
+{
+  "success": false,
+  "error": "Email o Identidad ya registrados"
+}
+```
+</ResponseExample>
+
+## Validation Rules
+
+### Email Validation
+- Must be a valid email format
+- Must be unique in the system
+
+### Name Validation
+- Minimum length: 2 characters
+- Maximum length: 100 characters
+
+### Identity Validation
+- Must contain only numeric digits
+- Length: 6-20 characters
+- Must be unique in the system
+- Regex pattern: `^[0-9]{6,20}$`
+
+### Password Validation
+- Minimum length: 6 characters
+- Hashed using `PASSWORD_BCRYPT` algorithm before storage
+- Password is never stored in plain text
+
+## Security Implementation
+
+The registration endpoint implements:
+
+1. **Password Hashing**: Uses PHP's `password_hash()` with BCRYPT algorithm
+2. **SQL Injection Protection**: Uses `real_escape_string()` for all inputs
+3. **Input Validation**: Validates all fields before processing
+4. **Duplicate Prevention**: Checks for existing email/identity before registration
+
+## Error Messages
+
+| Error | Description |
+|-------|-------------|
+| `Datos inválidos` | Invalid or malformed JSON |
+| `Email inválido` | Email format is incorrect |
+| `Nombre inválido` | Name is too short or too long |
+| `Identidad inválida` | Identity number doesn't match pattern |
+| `Contraseña muy corta` | Password has less than 6 characters |
+| `Email o Identidad ya registrados` | User already exists with this email or identity |
+
+## Future Authentication
+
+<Note>
+  The registered users are stored in the `usuarios` table with hashed passwords. To implement authentication:
+  
+  1. Create a login endpoint that validates credentials
+  2. Generate JWT tokens or session tokens
+  3. Add authentication middleware to protect API endpoints
+  4. Include authorization checks based on user roles
+</Note>
+
+## Recommended Headers for Future Use
+
+When authentication is implemented, requests should include:
+
+```bash
+Authorization: Bearer <token>
+Content-Type: application/json
+```

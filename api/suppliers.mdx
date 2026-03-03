@@ -1,0 +1,427 @@
+---
+title: Suppliers API
+description: Manage supplier information and contact details
+---
+
+## Endpoint
+
+```
+/database/proveedores.php
+```
+
+## Get All Suppliers
+
+Retrieve all suppliers with their status information.
+
+```bash
+curl -X GET https://your-domain.com/database/proveedores.php
+```
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "data": [
+    {
+      "id": 3,
+      "nif": "B12345678",
+      "nombre": "Distribuidora Tech SA",
+      "contacto": "Juan Pérez",
+      "email": "ventas@disttech.com",
+      "telefono": "+34 900 123 456",
+      "direccion": "Calle Principal 123",
+      "ciudad": "Madrid",
+      "web": "https://disttech.com",
+      "terminos": 30,
+      "parametro_id": 5,
+      "estado_nombre": "Activo",
+      "estado_color": "#4a90e2",
+      "productos_count": 0
+    },
+    {
+      "id": 2,
+      "nif": "A98765432",
+      "nombre": "Suministros Globales",
+      "contacto": "María García",
+      "email": "contacto@sumglobal.com",
+      "telefono": "+34 910 987 654",
+      "direccion": "Avenida Industrial 45",
+      "ciudad": "Barcelona",
+      "web": "",
+      "terminos": 60,
+      "parametro_id": 5,
+      "estado_nombre": "Activo",
+      "estado_color": "#4a90e2",
+      "productos_count": 0
+    }
+  ]
+}
+```
+</ResponseExample>
+
+### Response Fields
+
+<ResponseField name="id" type="integer">
+  Unique supplier identifier
+</ResponseField>
+
+<ResponseField name="nif" type="string">
+  Tax identification number
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  Supplier company name (required)
+</ResponseField>
+
+<ResponseField name="contacto" type="string">
+  Contact person name
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  Contact email address
+</ResponseField>
+
+<ResponseField name="telefono" type="string">
+  Contact phone number
+</ResponseField>
+
+<ResponseField name="direccion" type="string">
+  Physical address
+</ResponseField>
+
+<ResponseField name="ciudad" type="string">
+  City location
+</ResponseField>
+
+<ResponseField name="web" type="string">
+  Website URL
+</ResponseField>
+
+<ResponseField name="terminos" type="integer">
+  Payment terms in days (e.g., 30, 60, 90)
+</ResponseField>
+
+<ResponseField name="parametro_id" type="integer">
+  Status parameter ID (links to parametros table)
+</ResponseField>
+
+<ResponseField name="estado_nombre" type="string">
+  Status name from parametros table
+</ResponseField>
+
+<ResponseField name="estado_color" type="string">
+  Status color from parametros table
+</ResponseField>
+
+<ResponseField name="productos_count" type="integer">
+  Number of associated products (always 0 in current implementation)
+</ResponseField>
+
+---
+
+## Create Supplier
+
+Create a new supplier record.
+
+```bash
+curl -X POST https://your-domain.com/database/proveedores.php \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nif": "B12345678",
+    "nombre": "Distribuidora Tech SA",
+    "contacto": "Juan Pérez",
+    "email": "ventas@disttech.com",
+    "telefono": "+34 900 123 456",
+    "direccion": "Calle Principal 123",
+    "ciudad": "Madrid",
+    "web": "https://disttech.com",
+    "terminos": 30,
+    "parametro_id": 5
+  }'
+```
+
+### Request Parameters
+
+<ParamField body="nombre" type="string" required>
+  Supplier company name (required field)
+</ParamField>
+
+<ParamField body="nif" type="string">
+  Tax identification number
+</ParamField>
+
+<ParamField body="contacto" type="string">
+  Contact person name
+</ParamField>
+
+<ParamField body="email" type="string">
+  Contact email address
+</ParamField>
+
+<ParamField body="telefono" type="string">
+  Contact phone number
+</ParamField>
+
+<ParamField body="direccion" type="string">
+  Physical address
+</ParamField>
+
+<ParamField body="ciudad" type="string">
+  City location
+</ParamField>
+
+<ParamField body="web" type="string">
+  Website URL
+</ParamField>
+
+<ParamField body="terminos" type="integer">
+  Payment terms in days (can be null)
+</ParamField>
+
+<ParamField body="parametro_id" type="integer">
+  Status parameter ID (can be null)
+</ParamField>
+
+### Validation Rules
+
+- **nombre**: Required, cannot be empty after trimming
+- All other fields are optional
+- `terminos` and `parametro_id` accept null values
+- All string fields are trimmed and SQL-escaped
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "id": 4,
+  "message": "Proveedor creado"
+}
+```
+
+```json Error - Missing Name
+{
+  "success": false,
+  "error": "El nombre es obligatorio"
+}
+```
+
+```json Error - Invalid Data
+{
+  "success": false,
+  "error": "Datos inválidos"
+}
+```
+</ResponseExample>
+
+---
+
+## Update Supplier
+
+Update an existing supplier's information.
+
+```bash
+curl -X PUT https://your-domain.com/database/proveedores.php \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": 4,
+    "nif": "B12345678",
+    "nombre": "Distribuidora Tech SA - Actualizado",
+    "contacto": "Juan Pérez González",
+    "email": "ventas@disttech.com",
+    "telefono": "+34 900 123 456",
+    "direccion": "Calle Principal 123, Oficina 5",
+    "ciudad": "Madrid",
+    "web": "https://disttech.com",
+    "terminos": 45,
+    "parametro_id": 5
+  }'
+```
+
+### Request Parameters
+
+<ParamField body="id" type="integer" required>
+  Supplier ID to update (must be greater than 0)
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  Supplier company name
+</ParamField>
+
+<ParamField body="nif" type="string">
+  Tax identification number
+</ParamField>
+
+<ParamField body="contacto" type="string">
+  Contact person name
+</ParamField>
+
+<ParamField body="email" type="string">
+  Contact email address
+</ParamField>
+
+<ParamField body="telefono" type="string">
+  Contact phone number
+</ParamField>
+
+<ParamField body="direccion" type="string">
+  Physical address
+</ParamField>
+
+<ParamField body="ciudad" type="string">
+  City location
+</ParamField>
+
+<ParamField body="web" type="string">
+  Website URL
+</ParamField>
+
+<ParamField body="terminos" type="integer">
+  Payment terms in days
+</ParamField>
+
+<ParamField body="parametro_id" type="integer">
+  Status parameter ID
+</ParamField>
+
+### Validation Rules
+
+- **id**: Required, must be greater than 0
+- **nombre**: Required, cannot be empty
+- Updates `fecha_actualizacion` timestamp automatically
+- No existence check is performed before update
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "message": "Proveedor actualizado"
+}
+```
+
+```json Error - Invalid ID
+{
+  "success": false,
+  "error": "ID inválido"
+}
+```
+
+```json Error - Missing Name
+{
+  "success": false,
+  "error": "El nombre es obligatorio"
+}
+```
+</ResponseExample>
+
+---
+
+## Delete Supplier
+
+Delete a supplier from the system.
+
+```bash
+curl -X DELETE https://your-domain.com/database/proveedores.php \
+  -H "Content-Type: application/json" \
+  -d '{"id": 4}'
+```
+
+### Request Parameters
+
+<ParamField body="id" type="integer" required>
+  Supplier ID to delete (must be greater than 0)
+</ParamField>
+
+### Validation Rules
+
+- **id**: Required, must be greater than 0
+- No foreign key constraint check is performed
+- No existence check is performed before deletion
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "message": "Proveedor eliminado"
+}
+```
+
+```json Error - Invalid ID
+{
+  "success": false,
+  "error": "ID inválido"
+}
+```
+</ResponseExample>
+
+<Note>
+  Unlike other endpoints, the suppliers delete operation does not check for associated products or verify existence before deletion.
+</Note>
+
+---
+
+## Database Schema
+
+Suppliers are stored in the `proveedores` table:
+
+```sql
+CREATE TABLE proveedores (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nif VARCHAR(20),
+  nombre VARCHAR(100) NOT NULL,
+  contacto VARCHAR(100),
+  email VARCHAR(100),
+  telefono VARCHAR(20),
+  direccion VARCHAR(200),
+  ciudad VARCHAR(50),
+  web VARCHAR(200),
+  terminos INT,
+  parametro_id INT,
+  fecha_creacion DATETIME,
+  fecha_actualizacion DATETIME,
+  FOREIGN KEY (parametro_id) REFERENCES parametros(id)
+);
+```
+
+## Status Integration
+
+Suppliers can have status managed through the parametros system:
+
+<Steps>
+  <Step title="Create Status Parameter">
+    First, create a status parameter using the [Parameters API](/api/parameters):
+    
+    ```json
+    {
+      "nombre": "Activo",
+      "color": "#4a90e2"
+    }
+    ```
+  </Step>
+  
+  <Step title="Assign to Supplier">
+    Use the returned `id` as `parametro_id` when creating or updating suppliers
+  </Step>
+  
+  <Step title="Status Display">
+    The GET endpoint joins with parametros table to return `estado_nombre` and `estado_color`
+  </Step>
+</Steps>
+
+## Error Codes
+
+| Error Message | Cause | Solution |
+|---------------|-------|----------|
+| `Datos inválidos` | Invalid JSON | Check JSON syntax |
+| `El nombre es obligatorio` | Missing nombre | Include nombre in request |
+| `ID inválido` | Invalid ID | Provide valid ID > 0 |
+| `Error al crear: [details]` | Database error | Check database logs |
+| `Error al actualizar: [details]` | Database error | Check database logs |
+| `Error al eliminar: [details]` | Database error | Check database logs |

@@ -1,0 +1,409 @@
+---
+title: Parameters API
+description: Manage system parameters and status configurations
+---
+
+## Endpoint
+
+```
+/database/parametros.php
+```
+
+## Overview
+
+Parameters are reusable status configurations that can be assigned to products, suppliers, and other entities. Each parameter has a code, name, description, and color for UI display.
+
+## Get All Parameters
+
+Retrieve all parameters with product counts.
+
+```bash
+curl -X GET https://your-domain.com/database/parametros.php
+```
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "codigo": "001",
+      "nombre": "Activo",
+      "descripcion": "Productos en stock disponibles para venta",
+      "color": "#4a90e2",
+      "productos_count": 45
+    },
+    {
+      "id": 2,
+      "codigo": "002",
+      "nombre": "Agotado",
+      "descripcion": "Productos sin stock",
+      "color": "#e74c3c",
+      "productos_count": 12
+    },
+    {
+      "id": 3,
+      "codigo": "003",
+      "nombre": "Descontinuado",
+      "descripcion": "Productos que ya no se fabrican",
+      "color": "#95a5a6",
+      "productos_count": 8
+    }
+  ]
+}
+```
+</ResponseExample>
+
+### Response Fields
+
+<ResponseField name="id" type="integer">
+  Unique parameter identifier
+</ResponseField>
+
+<ResponseField name="codigo" type="string">
+  Parameter code (auto-generated if not provided)
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  Parameter name (max 50 characters, unique)
+</ResponseField>
+
+<ResponseField name="descripcion" type="string">
+  Parameter description
+</ResponseField>
+
+<ResponseField name="color" type="string">
+  Hex color code in format #RRGGBB
+</ResponseField>
+
+<ResponseField name="productos_count" type="integer">
+  Number of products using this parameter
+</ResponseField>
+
+---
+
+## Create Parameter
+
+Create a new parameter configuration.
+
+```bash
+curl -X POST https://your-domain.com/database/parametros.php \
+  -H "Content-Type: application/json" \
+  -d '{
+    "codigo": "004",
+    "nombre": "En Revisión",
+    "descripcion": "Productos pendientes de revisión de calidad",
+    "color": "#f39c12"
+  }'
+```
+
+### Request Parameters
+
+<ParamField body="nombre" type="string" required>
+  Parameter name (max 50 characters, must be unique)
+</ParamField>
+
+<ParamField body="codigo" type="string">
+  Parameter code (auto-generated if empty, must be unique)
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  Parameter description
+</ParamField>
+
+<ParamField body="color" type="string" default="#4a90e2">
+  Hex color code (must match format #RRGGBB)
+</ParamField>
+
+### Validation Rules
+
+- **nombre**: Required, max 50 characters, must be unique
+- **codigo**: Optional, auto-generated as 3-digit padded number if empty (e.g., "001", "002")
+  - If provided, must be unique
+- **color**: Optional, defaults to `#4a90e2`
+  - Must match regex pattern: `^#[0-9A-Fa-f]{6}$`
+  - Format: # followed by exactly 6 hexadecimal characters
+- **descripcion**: Optional, no length limit
+
+### Auto-Generated Codes
+
+<Expandable title="Code Generation Logic">
+  When `codigo` is empty or not provided:
+  
+  1. Query the maximum numeric value from existing codes
+  2. Increment by 1
+  3. Pad with zeros to 3 digits (e.g., 001, 002, 015, 125)
+  4. Start from "001" if no parameters exist
+  
+  Example sequence: `001` → `002` → `003` → ... → `099` → `100`
+</Expandable>
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "id": 4,
+  "message": "Parámetro creado"
+}
+```
+
+```json Error - Missing Name
+{
+  "success": false,
+  "error": "El nombre es obligatorio"
+}
+```
+
+```json Error - Name Too Long
+{
+  "success": false,
+  "error": "Longitud de nombre inválida"
+}
+```
+
+```json Error - Invalid Color
+{
+  "success": false,
+  "error": "Color inválido. Use formato #RRGGBB"
+}
+```
+
+```json Error - Duplicate
+{
+  "success": false,
+  "error": "Código o nombre ya existe"
+}
+```
+</ResponseExample>
+
+---
+
+## Update Parameter
+
+Update an existing parameter's information.
+
+```bash
+curl -X PUT https://your-domain.com/database/parametros.php \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": 4,
+    "nombre": "En Revisión Actualizado",
+    "descripcion": "Productos en proceso de control de calidad",
+    "color": "#e67e22"
+  }'
+```
+
+### Request Parameters
+
+<ParamField body="id" type="integer" required>
+  Parameter ID to update (must be greater than 0)
+</ParamField>
+
+<ParamField body="nombre" type="string" required>
+  New parameter name (max 50 characters)
+</ParamField>
+
+<ParamField body="descripcion" type="string">
+  New parameter description
+</ParamField>
+
+<ParamField body="color" type="string" default="#4a90e2">
+  New hex color code (must match format #RRGGBB)
+</ParamField>
+
+### Validation Rules
+
+- **id**: Required, must be greater than 0, parameter must exist
+- **nombre**: Required, max 50 characters, must be unique (excluding current parameter)
+- **color**: Must match regex pattern `^#[0-9A-Fa-f]{6}$`
+- **codigo**: Cannot be updated (read-only after creation)
+- Updates `fecha_actualizacion` timestamp automatically
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "message": "Parámetro actualizado"
+}
+```
+
+```json Error - Invalid ID or Name
+{
+  "success": false,
+  "error": "ID y nombre son obligatorios"
+}
+```
+
+```json Error - Not Found
+{
+  "success": false,
+  "error": "No encontrado"
+}
+```
+
+```json Error - Duplicate Name
+{
+  "success": false,
+  "error": "Código o nombre ya existe"
+}
+```
+
+```json Error - Invalid Color
+{
+  "success": false,
+  "error": "Color inválido. Use formato #RRGGBB"
+}
+```
+</ResponseExample>
+
+<Note>
+  The `codigo` field is immutable and cannot be changed after creation. Only `nombre`, `descripcion`, and `color` can be updated.
+</Note>
+
+---
+
+## Delete Parameter
+
+Delete a parameter from the system.
+
+```bash
+curl -X DELETE https://your-domain.com/database/parametros.php \
+  -H "Content-Type: application/json" \
+  -d '{"id": 4}'
+```
+
+### Request Parameters
+
+<ParamField body="id" type="integer" required>
+  Parameter ID to delete (must be greater than 0)
+</ParamField>
+
+### Validation Rules
+
+- **id**: Required, must be greater than 0
+- Cannot delete if parameter has associated products
+- Checks `productos` table for `parametro_id` foreign key references
+
+### Response
+
+<ResponseExample>
+```json Success
+{
+  "success": true,
+  "message": "Parámetro eliminado"
+}
+```
+
+```json Error - Invalid ID
+{
+  "success": false,
+  "error": "ID inválido"
+}
+```
+
+```json Error - Has Products
+{
+  "success": false,
+  "error": "No se puede eliminar: tiene productos asociados"
+}
+```
+</ResponseExample>
+
+<Warning>
+  Deleting a parameter is prevented if it has associated products. You must reassign or delete the products first.
+</Warning>
+
+---
+
+## Database Schema
+
+Parameters are stored in the `parametros` table:
+
+```sql
+CREATE TABLE parametros (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  codigo VARCHAR(10) NOT NULL UNIQUE,
+  nombre VARCHAR(50) NOT NULL UNIQUE,
+  descripcion TEXT,
+  color VARCHAR(7) DEFAULT '#4a90e2',
+  fecha_creacion DATETIME,
+  fecha_actualizacion DATETIME
+);
+```
+
+## Usage Examples
+
+### Product Status Management
+
+<Steps>
+  <Step title="Create Status Parameters">
+    Create parameters for different product statuses:
+    
+    ```bash
+    # Create "Active" status
+    curl -X POST .../parametros.php -d '{
+      "nombre": "Activo",
+      "color": "#4a90e2"
+    }'
+    
+    # Create "Out of Stock" status
+    curl -X POST .../parametros.php -d '{
+      "nombre": "Agotado",
+      "color": "#e74c3c"
+    }'
+    ```
+  </Step>
+  
+  <Step title="Assign to Products">
+    Use the parameter `id` when creating or updating products
+  </Step>
+  
+  <Step title="Monitor Usage">
+    Use GET endpoint to see `productos_count` for each parameter
+  </Step>
+</Steps>
+
+### Color Validation
+
+Valid color formats:
+
+<CodeGroup>
+```bash Valid Colors
+#4a90e2  ✓ (lowercase)
+#E74C3C  ✓ (uppercase)
+#95A5a6  ✓ (mixed case)
+#000000  ✓ (black)
+#FFFFFF  ✓ (white)
+```
+
+```bash Invalid Colors
+#4a90e2f  ✗ (7 characters)
+#4a90e    ✗ (5 characters)
+4a90e2    ✗ (missing #)
+blue      ✗ (not hex)
+rgb(74,144,226)  ✗ (RGB format)
+```
+</CodeGroup>
+
+---
+
+## Error Codes
+
+| Error Message | Cause | Solution |
+|---------------|-------|----------|
+| `Datos inválidos` | Invalid JSON | Check JSON syntax |
+| `El nombre es obligatorio` | Missing nombre | Include nombre in request |
+| `Longitud de nombre inválida` | Name exceeds 50 chars | Shorten parameter name |
+| `Color inválido. Use formato #RRGGBB` | Invalid color format | Use hex format like #4a90e2 |
+| `Código o nombre ya existe` | Duplicate codigo or nombre | Use unique values |
+| `ID y nombre son obligatorios` | Missing id or nombre in PUT | Include both fields |
+| `No encontrado` | Parameter doesn't exist | Check parameter ID |
+| `ID inválido` | Invalid ID | Provide valid ID > 0 |
+| `No se puede eliminar: tiene productos asociados` | Has product references | Reassign products first |

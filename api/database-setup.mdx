@@ -1,0 +1,538 @@
+---
+title: Database Setup
+description: Database configuration and connection setup for Pro Stock Tool
+---
+
+## Database Configuration
+
+Pro Stock Tool uses MySQL/MariaDB as its database system. The database is named **prostocktool** and connects via the MySQLi extension.
+
+## Connection Settings
+
+### Default Configuration
+
+The database connection is configured in `/database/conexion.php`:
+
+```php
+<?php
+
+$host = "localhost";
+$user = "root";
+$pass = "";
+$db = "prostocktool";
+
+$conn = new mysqli($host, $user, $pass, $db);
+if ($conn->connect_errno) {
+    http_response_code(500);
+    echo json_encode(["error" => "Error de conexión a la base de datos"]);
+    exit;
+}
+?>
+```
+
+### Environment Variables
+
+For production deployments, override these values using environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DB_HOST` | localhost | Database server hostname |
+| `DB_USER` | root | Database username |
+| `DB_PASSWORD` | (empty) | Database password |
+| `DB_NAME` | prostocktool | Database name |
+
+### Connection Properties
+
+- **Extension**: MySQLi (MySQL Improved)
+- **Character Set**: UTF-8 for proper Spanish character support
+- **Error Handling**: Connection failures return HTTP 500 with JSON error
+
+## Database Creation
+
+### Create Database
+
+```sql
+CREATE DATABASE prostocktool 
+CHARACTER SET utf8mb4 
+COLLATE utf8mb4_unicode_ci;
+```
+
+### Use Database
+
+```sql
+USE prostocktool;
+```
+
+## Table Creation Scripts
+
+### usuarios Table
+
+```sql
+CREATE TABLE usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    nombre VARCHAR(100) NOT NULL,
+    identidad VARCHAR(20) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_email (email),
+    INDEX idx_identidad (identidad)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+### categorias Table
+
+```sql
+CREATE TABLE categorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL UNIQUE,
+    descripcion VARCHAR(200),
+    color VARCHAR(7) DEFAULT '#2e6df6',
+    estado VARCHAR(20) DEFAULT 'ACTIVO',
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_nombre (nombre),
+    INDEX idx_estado (estado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+### subcategorias Table
+
+```sql
+CREATE TABLE subcategorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    categoria_id INT NOT NULL,
+    nombre VARCHAR(50) NOT NULL,
+    descripcion VARCHAR(200),
+    color VARCHAR(7) DEFAULT '#2e6df6',
+    estado VARCHAR(20) DEFAULT 'ACTIVO',
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE RESTRICT,
+    UNIQUE KEY unique_nombre_categoria (nombre, categoria_id),
+    INDEX idx_categoria_id (categoria_id),
+    INDEX idx_estado (estado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+### parametros Table
+
+```sql
+CREATE TABLE parametros (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    codigo VARCHAR(10) NOT NULL UNIQUE,
+    nombre VARCHAR(50) NOT NULL UNIQUE,
+    descripcion TEXT,
+    color VARCHAR(7) DEFAULT '#4a90e2',
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_codigo (codigo),
+    INDEX idx_nombre (nombre)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+### proveedores Table
+
+```sql
+CREATE TABLE proveedores (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nif VARCHAR(20),
+    nombre VARCHAR(100) NOT NULL,
+    contacto VARCHAR(100),
+    email VARCHAR(100),
+    telefono VARCHAR(20),
+    direccion VARCHAR(255),
+    ciudad VARCHAR(100),
+    web VARCHAR(255),
+    terminos INT,
+    parametro_id INT,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (parametro_id) REFERENCES parametros(id) ON DELETE RESTRICT,
+    INDEX idx_nombre (nombre),
+    INDEX idx_parametro_id (parametro_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+### bodegas Table
+
+```sql
+CREATE TABLE bodegas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL UNIQUE,
+    descripcion TEXT,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_nombre (nombre)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+### productos Table (Skeleton)
+
+```sql
+CREATE TABLE productos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    categoria_id INT,
+    subcategoria_id INT,
+    parametro_id INT,
+    bodega_id INT,
+    -- Additional product fields here
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE RESTRICT,
+    FOREIGN KEY (subcategoria_id) REFERENCES subcategorias(id) ON DELETE RESTRICT,
+    FOREIGN KEY (parametro_id) REFERENCES parametros(id) ON DELETE RESTRICT,
+    FOREIGN KEY (bodega_id) REFERENCES bodegas(id) ON DELETE RESTRICT,
+    INDEX idx_categoria_id (categoria_id),
+    INDEX idx_subcategoria_id (subcategoria_id),
+    INDEX idx_parametro_id (parametro_id),
+    INDEX idx_bodega_id (bodega_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+## Complete Setup Script
+
+Run this script to create the entire database structure:
+
+```sql
+-- Create database
+CREATE DATABASE IF NOT EXISTS prostocktool 
+CHARACTER SET utf8mb4 
+COLLATE utf8mb4_unicode_ci;
+
+USE prostocktool;
+
+-- Create tables in dependency order
+
+-- 1. Independent tables (no foreign keys)
+CREATE TABLE usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    nombre VARCHAR(100) NOT NULL,
+    identidad VARCHAR(20) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_email (email),
+    INDEX idx_identidad (identidad)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE categorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL UNIQUE,
+    descripcion VARCHAR(200),
+    color VARCHAR(7) DEFAULT '#2e6df6',
+    estado VARCHAR(20) DEFAULT 'ACTIVO',
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_nombre (nombre),
+    INDEX idx_estado (estado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE parametros (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    codigo VARCHAR(10) NOT NULL UNIQUE,
+    nombre VARCHAR(50) NOT NULL UNIQUE,
+    descripcion TEXT,
+    color VARCHAR(7) DEFAULT '#4a90e2',
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_codigo (codigo),
+    INDEX idx_nombre (nombre)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE bodegas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL UNIQUE,
+    descripcion TEXT,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_nombre (nombre)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2. Tables with one level of foreign keys
+CREATE TABLE subcategorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    categoria_id INT NOT NULL,
+    nombre VARCHAR(50) NOT NULL,
+    descripcion VARCHAR(200),
+    color VARCHAR(7) DEFAULT '#2e6df6',
+    estado VARCHAR(20) DEFAULT 'ACTIVO',
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE RESTRICT,
+    UNIQUE KEY unique_nombre_categoria (nombre, categoria_id),
+    INDEX idx_categoria_id (categoria_id),
+    INDEX idx_estado (estado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE proveedores (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nif VARCHAR(20),
+    nombre VARCHAR(100) NOT NULL,
+    contacto VARCHAR(100),
+    email VARCHAR(100),
+    telefono VARCHAR(20),
+    direccion VARCHAR(255),
+    ciudad VARCHAR(100),
+    web VARCHAR(255),
+    terminos INT,
+    parametro_id INT,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (parametro_id) REFERENCES parametros(id) ON DELETE RESTRICT,
+    INDEX idx_nombre (nombre),
+    INDEX idx_parametro_id (parametro_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 3. Products table (references multiple tables)
+CREATE TABLE productos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    categoria_id INT,
+    subcategoria_id INT,
+    parametro_id INT,
+    bodega_id INT,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE RESTRICT,
+    FOREIGN KEY (subcategoria_id) REFERENCES subcategorias(id) ON DELETE RESTRICT,
+    FOREIGN KEY (parametro_id) REFERENCES parametros(id) ON DELETE RESTRICT,
+    FOREIGN KEY (bodega_id) REFERENCES bodegas(id) ON DELETE RESTRICT,
+    INDEX idx_categoria_id (categoria_id),
+    INDEX idx_subcategoria_id (subcategoria_id),
+    INDEX idx_parametro_id (parametro_id),
+    INDEX idx_bodega_id (bodega_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+## Initial Data Setup
+
+### Default Parameters
+
+Create initial product status parameters:
+
+```sql
+INSERT INTO parametros (codigo, nombre, descripcion, color) VALUES
+('001', 'Disponible', 'Producto disponible en stock', '#4caf50'),
+('002', 'Agotado', 'Producto sin stock', '#f44336'),
+('003', 'En camino', 'Producto en tránsito', '#ff9800'),
+('004', 'Descontinuado', 'Producto ya no disponible', '#9e9e9e');
+```
+
+### Default Warehouse
+
+Create a default warehouse:
+
+```sql
+INSERT INTO bodegas (nombre, descripcion) VALUES
+('Bodega Principal', 'Almacén central de productos');
+```
+
+### Sample Categories
+
+Create sample product categories:
+
+```sql
+INSERT INTO categorias (nombre, descripcion, color, estado) VALUES
+('Electrónica', 'Productos electrónicos y tecnología', '#2196f3', 'ACTIVO'),
+('Ropa', 'Prendas de vestir y accesorios', '#e91e63', 'ACTIVO'),
+('Alimentos', 'Productos alimenticios', '#4caf50', 'ACTIVO');
+```
+
+## Security Configuration
+
+### Password Security
+
+User passwords are hashed using bcrypt:
+
+```php
+$hash = password_hash($contrasena, PASSWORD_BCRYPT);
+```
+
+To verify passwords during login:
+
+```php
+password_verify($input_password, $stored_hash);
+```
+
+### SQL Injection Prevention
+
+All user inputs are escaped using MySQLi:
+
+```php
+$nombre = $conn->real_escape_string($nombre);
+$email = $conn->real_escape_string($email);
+```
+
+### Prepared Statements (Recommended)
+
+For enhanced security, consider migrating to prepared statements:
+
+```php
+$stmt = $conn->prepare("INSERT INTO categorias (nombre, descripcion) VALUES (?, ?)");
+$stmt->bind_param("ss", $nombre, $descripcion);
+$stmt->execute();
+```
+
+## CORS Configuration
+
+All API endpoints include CORS headers:
+
+```php
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+```
+
+## Cache Control
+
+Dynamic data endpoints use no-cache headers:
+
+```php
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+```
+
+## Database Maintenance
+
+### Backup Database
+
+```bash
+mysqldump -u root -p prostocktool > backup_$(date +%Y%m%d).sql
+```
+
+### Restore Database
+
+```bash
+mysql -u root -p prostocktool < backup_20260303.sql
+```
+
+### Optimize Tables
+
+```sql
+OPTIMIZE TABLE categorias, subcategorias, parametros, proveedores, bodegas, productos, usuarios;
+```
+
+### Check Table Integrity
+
+```sql
+CHECK TABLE categorias, subcategorias, parametros, proveedores, bodegas, productos, usuarios;
+```
+
+## Connection Pooling
+
+For high-traffic applications, consider implementing connection pooling:
+
+1. Use persistent connections:
+   ```php
+   $conn = new mysqli('p:' . $host, $user, $pass, $db);
+   ```
+
+2. Implement connection limits in MySQL:
+   ```sql
+   SET GLOBAL max_connections = 200;
+   ```
+
+## Monitoring
+
+### Check Active Connections
+
+```sql
+SHOW PROCESSLIST;
+```
+
+### Monitor Table Sizes
+
+```sql
+SELECT 
+    table_name AS 'Table',
+    ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'Size (MB)'
+FROM information_schema.TABLES
+WHERE table_schema = 'prostocktool'
+ORDER BY (data_length + index_length) DESC;
+```
+
+### Check Foreign Key Constraints
+
+```sql
+SELECT 
+    TABLE_NAME,
+    COLUMN_NAME,
+    CONSTRAINT_NAME,
+    REFERENCED_TABLE_NAME,
+    REFERENCED_COLUMN_NAME
+FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+WHERE REFERENCED_TABLE_SCHEMA = 'prostocktool';
+```
+
+## Troubleshooting
+
+### Connection Failed
+
+**Error**: "Error de conexión a la base de datos"
+
+**Solutions**:
+1. Verify MySQL service is running:
+   ```bash
+   systemctl status mysql
+   ```
+2. Check credentials in `conexion.php`
+3. Verify database exists:
+   ```sql
+   SHOW DATABASES LIKE 'prostocktool';
+   ```
+
+### Foreign Key Constraint Fails
+
+**Error**: Cannot add or update a child row
+
+**Solutions**:
+1. Ensure referenced record exists in parent table
+2. Check that foreign key column types match
+3. Verify data type compatibility
+
+### Character Encoding Issues
+
+**Error**: Spanish characters display incorrectly
+
+**Solutions**:
+1. Set connection charset:
+   ```php
+   $conn->set_charset("utf8mb4");
+   ```
+2. Verify table charset:
+   ```sql
+   SHOW CREATE TABLE categorias;
+   ```
+
+## Production Recommendations
+
+<Warning>
+The default configuration uses empty password for root user. Always set strong passwords in production.
+</Warning>
+
+1. **Use Environment Variables**:
+   ```php
+   $host = getenv('DB_HOST') ?: 'localhost';
+   $user = getenv('DB_USER') ?: 'root';
+   $pass = getenv('DB_PASSWORD') ?: '';
+   $db = getenv('DB_NAME') ?: 'prostocktool';
+   ```
+
+2. **Enable SSL Connections**:
+   ```php
+   $conn->ssl_set(null, null, "/path/to/ca.pem", null, null);
+   ```
+
+3. **Limit User Privileges**:
+   ```sql
+   CREATE USER 'prostockapp'@'localhost' IDENTIFIED BY 'secure_password';
+   GRANT SELECT, INSERT, UPDATE, DELETE ON prostocktool.* TO 'prostockapp'@'localhost';
+   ```
+
+4. **Enable Query Logging** (for debugging):
+   ```sql
+   SET GLOBAL general_log = 'ON';
+   SET GLOBAL log_output = 'TABLE';
+   ```
+
+5. **Configure Backups**: Set up automated daily backups with retention policy

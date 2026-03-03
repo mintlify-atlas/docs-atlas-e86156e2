@@ -1,0 +1,497 @@
+---
+title: User Registration
+description: Complete guide to the Pro Stock Tool user registration process and validation rules
+---
+
+## Overview
+
+The registration system allows new users to create accounts in Pro Stock Tool. The process includes comprehensive client-side and server-side validation to ensure data integrity and security.
+
+## Registration Form
+
+The registration page (`login.html`) provides a user-friendly interface for account creation with real-time validation.
+
+### Form Fields
+
+The registration form (`login.html:20-40`) collects the following information:
+
+| Field | Type | Name | Required | Placeholder | Validation |
+|-------|------|------|----------|-------------|------------|
+| Email | `email` | `email` | Yes | example@gmail.com | Email format, unique |
+| Name | `text` | `Nombre` | Yes | Juan David | Min 2 chars, max 100 |
+| ID Number | `text` | `N-identidad` | Yes | 1067623487 | 6-20 digits |
+| Password | `password` | `Contraseña` | Yes | ************************ | Min 6 characters |
+
+## Registration Workflow
+
+<Steps>
+  <Step title="Fill registration form">
+    User enters email, name, ID number, and password in the registration form.
+  </Step>
+  
+  <Step title="Client-side validation">
+    JavaScript validates all fields before submission (`registro.js:34-45`).
+  </Step>
+  
+  <Step title="Submit to backend">
+    Data is sent as JSON to `/database/registro.php` via fetch API.
+  </Step>
+  
+  <Step title="Server-side validation">
+    PHP validates and sanitizes all inputs (`registro.php:21-37`).
+  </Step>
+  
+  <Step title="Duplicate check">
+    System verifies email and ID number are not already registered (`registro.php:42-45`).
+  </Step>
+  
+  <Step title="Password hashing">
+    Password is hashed using BCrypt before storage (`registro.php:48`).
+  </Step>
+  
+  <Step title="Database insertion">
+    User record is created in the `usuarios` table (`registro.php:51-52`).
+  </Step>
+  
+  <Step title="Success response">
+    Confirmation message is displayed and form is reset.
+  </Step>
+</Steps>
+
+## Field Specifications
+
+### Email Field
+
+```html
+<input 
+  type="email" 
+  name="email" 
+  id="email-Registro" 
+  placeholder="example@gmail.com" 
+  autocomplete="email" 
+  required
+>
+```
+
+**Validation Rules:**
+
+<Tabs>
+  <Tab title="Client-Side">
+    JavaScript regex validation (`registro.js:30`):
+    ```javascript
+    function validEmail(v){ 
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); 
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Server-Side">
+    PHP filter validation (`registro.php:26-28`):
+    ```php
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+      echo json_encode(['success'=>false,'error'=>'Email inválido']); 
+      exit;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Email addresses must be unique. The system checks for existing emails before creating an account.
+</Note>
+
+### Name Field
+
+```html
+<input 
+  type="text" 
+  name="Nombre" 
+  id="Nombre-Registro" 
+  placeholder="Juan David" 
+  autocomplete="name" 
+  required
+>
+```
+
+**Validation Rules:**
+
+- **Minimum length**: 2 characters
+- **Maximum length**: 100 characters
+- **Client validation** (`registro.js:43`):
+  ```javascript
+  if (payload.nombre.length < 2) { 
+    showAlert('Nombre demasiado corto','error'); 
+    return; 
+  }
+  ```
+- **Server validation** (`registro.php:29-31`):
+  ```php
+  if (strlen($nombre) < 2 || strlen($nombre) > 100) {
+    echo json_encode(['success'=>false,'error'=>'Nombre inválido']);
+  }
+  ```
+
+### ID Number Field
+
+```html
+<input 
+  type="text" 
+  name="N-identidad" 
+  id="N-identidad-Registro" 
+  placeholder="1067623487" 
+  inputmode="numeric" 
+  required
+>
+```
+
+**Validation Rules:**
+
+- **Format**: Numeric only
+- **Length**: 6 to 20 digits
+- **Uniqueness**: Must not exist in database
+
+<Tabs>
+  <Tab title="Client-Side">
+    ```javascript
+    function validIdentidad(v){ 
+      return /^[0-9]{6,20}$/.test(v); 
+    }
+    ```
+    
+    Validation check (`registro.js:44`):
+    ```javascript
+    if (!validIdentidad(payload.identidad)) { 
+      showAlert('N° Identidad inválido','error'); 
+      return; 
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Server-Side">
+    ```php
+    if (!preg_match('/^[0-9]{6,20}$/', $identidad)) {
+      echo json_encode(['success'=>false,'error'=>'Identidad inválida']);
+      exit;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+  ID numbers must be unique. The system prevents duplicate ID registrations to maintain data integrity.
+</Warning>
+
+### Password Field
+
+```html
+<div class="password-field">
+  <input 
+    type="password" 
+    name="Contraseña" 
+    id="Contraseña-Registro" 
+    placeholder="************************" 
+    autocomplete="new-password" 
+    required
+  >
+  <button type="button" class="toggle-password" 
+    aria-label="Mostrar u ocultar contraseña">
+  </button>
+</div>
+```
+
+**Features:**
+
+- **Show/Hide Toggle**: Button to reveal password (`registro.js:22-28`)
+- **Minimum Length**: 6 characters
+- **Secure Storage**: BCrypt hashing
+
+**Validation:**
+
+<Tabs>
+  <Tab title="Client-Side">
+    ```javascript
+    if ((payload.contrasena||'').length < 6) { 
+      showAlert('La contraseña debe tener mínimo 6 caracteres','error');
+      return; 
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Server-Side">
+    ```php
+    if (strlen($contrasena) < 6) {
+      echo json_encode(['success'=>false,'error'=>'Contraseña muy corta']);
+      exit;
+    }
+    ```
+  </Tab>
+</Tabs>
+
+**Password Toggle Implementation** (`registro.js:22-28`):
+
+```javascript
+if (togglePwd && password){
+  togglePwd.addEventListener('click', () => {
+    const isText = password.getAttribute('type') === 'text';
+    password.setAttribute('type', isText ? 'password' : 'text');
+    togglePwd.classList.toggle('active', !isText);
+  });
+}
+```
+
+## Form Submission Process
+
+### Client-Side Submission
+
+The form submission is handled via JavaScript (`registro.js:34-63`):
+
+```javascript
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = {
+    email: email.value.trim(),
+    nombre: nombre.value.trim(),
+    identidad: identidad.value.trim(),
+    contrasena: password.value
+  };
+  
+  // Validation checks...
+  
+  try{
+    const resp = await fetch('/database/registro.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await resp.json();
+    if (data && data.success){
+      showAlert(data.message || 'Registro exitoso','success');
+      form.reset();
+    } else {
+      showAlert((data && data.error) || 'No se pudo registrar','error');
+    }
+  }catch(err){
+    showAlert('Error de conexión','error');
+  }
+});
+```
+
+<Note>
+  The form uses `novalidate` attribute to implement custom JavaScript validation instead of default HTML5 validation.
+</Note>
+
+### Server-Side Processing
+
+The backend endpoint (`registro.php`) processes registration requests:
+
+#### Request Validation
+
+```php
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+  echo json_encode(['success' => false, 'error' => 'Método no permitido']);
+  exit;
+}
+
+$input = file_get_contents('php://input');
+$data = json_decode($input, true);
+if (!$data) { 
+  echo json_encode(['success'=>false,'error'=>'Datos inválidos']); 
+  exit; 
+}
+```
+
+#### Data Sanitization
+
+```php
+$email = isset($data['email']) ? trim($data['email']) : '';
+$nombre = isset($data['nombre']) ? trim($data['nombre']) : '';
+$identidad = isset($data['identidad']) ? trim($data['identidad']) : '';
+$contrasena = isset($data['contrasena']) ? (string)$data['contrasena'] : '';
+```
+
+#### Duplicate Prevention
+
+```php
+$emailEsc = $conn->real_escape_string($email);
+$identidadEsc = $conn->real_escape_string($identidad);
+
+$check = $conn->query(
+  "SELECT id FROM usuarios WHERE email = '$emailEsc' OR identidad = '$identidadEsc' LIMIT 1"
+);
+if ($check && $check->num_rows > 0) {
+  echo json_encode(['success'=>false,'error'=>'Email o Identidad ya registrados']);
+  exit;
+}
+```
+
+<Warning>
+  The system prevents duplicate registrations by checking both email and ID number against existing records.
+</Warning>
+
+#### Password Hashing & Database Insertion
+
+```php
+$nombreEsc = $conn->real_escape_string($nombre);
+$hash = password_hash($contrasena, PASSWORD_BCRYPT);
+$hashEsc = $conn->real_escape_string($hash);
+
+$sql = "INSERT INTO usuarios (email, nombre, identidad, password, creado_en) 
+        VALUES ('$emailEsc', '$nombreEsc', '$identidadEsc', '$hashEsc', NOW())";
+        
+if ($conn->query($sql)) {
+  echo json_encode(['success'=>true,'message'=>'Registro exitoso']);
+} else {
+  echo json_encode(['success'=>false,'error'=>'Error al registrar: ' . $conn->error]);
+}
+```
+
+## Alert System
+
+The registration page includes a custom alert component (`login.html:44-47`):
+
+```html
+<div class="alerta" id="alerta" role="alert" aria-live="polite" hidden>
+  <button type="button" class="cerrar-alerta-registro" 
+    aria-label="Cerrar alerta">X</button>
+  <p id="alerta-mensaje">Te has registrado exitosamente</p>
+</div>
+```
+
+**Alert Function** (`registro.js:12-16`):
+
+```javascript
+function showAlert(msg, type='info'){
+  alertaMsg.textContent = msg;
+  alerta.removeAttribute('hidden');
+  setTimeout(() => { alerta.setAttribute('hidden',''); }, 4000);
+}
+```
+
+Alerts automatically disappear after 4 seconds and can be manually closed.
+
+## API Response Format
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Registro exitoso"
+}
+```
+
+### Error Responses
+
+```json
+{
+  "success": false,
+  "error": "Email o Identidad ya registrados"
+}
+```
+
+Possible error messages:
+- "Método no permitido"
+- "Datos inválidos"
+- "Email inválido"
+- "Nombre inválido"
+- "Identidad inválida"
+- "Contraseña muy corta"
+- "Email o Identidad ya registrados"
+- "Error al registrar: [database error]"
+- "Error del servidor: [exception message]"
+
+## Security Features
+
+<CardGroup cols={2}>
+  <Card title="BCrypt Hashing" icon="lock">
+    Passwords are hashed using BCrypt with automatic salt generation before database storage.
+  </Card>
+  
+  <Card title="SQL Injection Prevention" icon="shield">
+    All user inputs are escaped using `real_escape_string()` to prevent SQL injection attacks.
+  </Card>
+  
+  <Card title="Duplicate Prevention" icon="ban">
+    System checks for existing email and ID numbers before allowing registration.
+  </Card>
+  
+  <Card title="CORS Headers" icon="globe">
+    Appropriate CORS headers are set for secure cross-origin requests.
+  </Card>
+</CardGroup>
+
+## Database Schema
+
+Based on the code, the `usuarios` table includes:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | INT | Auto-increment primary key |
+| email | VARCHAR | User email (unique) |
+| nombre | VARCHAR | User full name |
+| identidad | VARCHAR | ID number (unique) |
+| password | VARCHAR | BCrypt hashed password |
+| creado_en | TIMESTAMP | Account creation timestamp |
+
+## Best Practices
+
+1. **Strong Passwords**: While the minimum is 6 characters, encourage users to create longer, complex passwords
+2. **Valid Email**: Use a real email address for account recovery and notifications
+3. **Unique Credentials**: Each email and ID number can only be registered once
+4. **Secure Connection**: Always use HTTPS in production to protect credentials during transmission
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Email inválido error">
+    Ensure the email follows the format: `username@domain.extension`
+    
+    Examples of valid emails:
+    - john@example.com
+    - user.name@company.co.uk
+    - test123@domain.org
+  </Accordion>
+  
+  <Accordion title="N° Identidad inválido error">
+    The ID number must:
+    - Contain only digits (0-9)
+    - Be between 6 and 20 characters long
+    - Not contain spaces, letters, or special characters
+  </Accordion>
+  
+  <Accordion title="Email o Identidad ya registrados">
+    This error occurs when:
+    - The email address is already in use by another account
+    - The ID number is already registered
+    
+    Try using a different email or verify you don't already have an account.
+  </Accordion>
+  
+  <Accordion title="Contraseña muy corta error">
+    Password must be at least 6 characters long. Consider using:
+    - A mix of uppercase and lowercase letters
+    - Numbers and special characters
+    - A passphrase for better security
+  </Accordion>
+  
+  <Accordion title="Error de conexión">
+    This typically indicates:
+    - Network connectivity issues
+    - Server is down or unreachable
+    - CORS configuration problems
+    
+    Wait a moment and try again. If the problem persists, contact support.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="./authentication">
+    Learn how to log in to your account
+  </Card>
+  
+  <Card title="User Accounts" icon="user" href="./user-accounts">
+    Understand account structure and management
+  </Card>
+</CardGroup>

@@ -1,0 +1,168 @@
+---
+title: Authentication
+description: Learn how the Pro Stock Tool login system works and how users authenticate
+---
+
+## Overview
+
+Pro Stock Tool uses a secure email and password-based authentication system. The login flow is handled through a combination of frontend validation and backend verification with secure password hashing.
+
+## Login Process
+
+The authentication system is implemented in the login page (`Inicio-Sesion.html`) with the following workflow:
+
+<Steps>
+  <Step title="User submits credentials">
+    Users enter their email and password on the login form.
+  </Step>
+  
+  <Step title="Frontend validation">
+    The browser validates that both fields are filled and the email format is correct.
+  </Step>
+  
+  <Step title="Server verification">
+    The backend verifies credentials against the database using secure password hashing.
+  </Step>
+  
+  <Step title="Session creation">
+    Upon successful authentication, a user session is established.
+  </Step>
+</Steps>
+
+## Login Form Fields
+
+The login form (`Inicio-Sesion.html:42-54`) contains the following fields:
+
+| Field | Type | Name | Required | Validation |
+|-------|------|------|----------|------------|
+| Email | `email` | `email` | Yes | HTML5 email validation |
+| Password | `password` | `Contraseña` | Yes | Required field |
+
+### Email Field
+
+```html
+<input 
+  type="email" 
+  placeholder="example@gmail.com" 
+  name="email" 
+  required 
+  id="email"
+>
+```
+
+The email field uses HTML5 native validation to ensure proper email format.
+
+### Password Field
+
+```html
+<input 
+  type="password" 
+  name="Contraseña" 
+  required 
+  id="Contraseña" 
+  placeholder="*****************"
+>
+```
+
+<Note>
+  The password field uses type="password" to mask the input for security.
+</Note>
+
+## Authentication Security
+
+Pro Stock Tool implements several security measures:
+
+### Password Hashing
+
+Passwords are hashed using **BCrypt** algorithm (`PASSWORD_BCRYPT`) as seen in the registration process (`registro.php:48`):
+
+```php
+$hash = password_hash($contrasena, PASSWORD_BCRYPT);
+```
+
+<Warning>
+  Passwords are never stored in plain text. The system uses BCrypt hashing with automatic salt generation for maximum security.
+</Warning>
+
+### Database Connection Security
+
+The system connects to the MySQL database using:
+
+- **Host**: localhost
+- **Database**: prostocktool
+- **Connection**: MySQLi with error handling (`conexion.php:8-13`)
+
+```php
+$conn = new mysqli($host, $user, $pass, $db);
+if ($conn->connect_errno) {
+    http_response_code(500);
+    echo json_encode(["error" => "Error de conexión a la base de datos"]);
+    exit;
+}
+```
+
+## Form Submission
+
+The login form submits credentials via POST method:
+
+```html
+<form action="" method="post">
+  <!-- Form fields -->
+  <input type="submit" id="Iniciar-Sesion" value="Iniciar Sesion">
+</form>
+```
+
+## Registration Link
+
+Users without an account can navigate to the registration page:
+
+```html
+<p id="Link-Registro">
+  ¿No tiene una cuenta? 
+  <span><a href="login.html">Registrate ahora</a></span>
+</p>
+```
+
+<Note>
+  The link directs to `login.html` which contains the registration form.
+</Note>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Secure Credentials" icon="lock">
+    Always use strong passwords with at least 6 characters (as enforced by the registration system).
+  </Card>
+  
+  <Card title="Email Validation" icon="envelope">
+    Email addresses must be valid and unique in the system.
+  </Card>
+  
+  <Card title="Session Management" icon="clock">
+    Users should log out when finished to maintain security.
+  </Card>
+  
+  <Card title="Connection Security" icon="shield">
+    The system validates database connections before processing requests.
+  </Card>
+</CardGroup>
+
+## Error Handling
+
+The authentication system includes comprehensive error handling:
+
+- **Connection errors**: Returns HTTP 500 with error message
+- **Invalid credentials**: Prevents unauthorized access
+- **Database failures**: Graceful error responses
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="User Registration" icon="user-plus" href="./registration">
+    Learn how to create new user accounts
+  </Card>
+  
+  <Card title="User Accounts" icon="users" href="./user-accounts">
+    Manage and understand user account structure
+  </Card>
+</CardGroup>

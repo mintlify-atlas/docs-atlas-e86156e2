@@ -1,0 +1,129 @@
+---
+title: API Overview
+description: Overview of the Pro Stock Tool REST API
+---
+
+The Pro Stock Tool API is a RESTful API that allows you to manage inventory, warehouses, categories, suppliers, and parameters programmatically.
+
+## Base URL
+
+All API requests should be made to:
+
+```
+https://your-domain.com/database/
+```
+
+## HTTP Methods
+
+The API supports standard HTTP methods:
+
+- `GET` - Retrieve resources
+- `POST` - Create new resources
+- `PUT` - Update existing resources
+- `DELETE` - Delete resources
+- `OPTIONS` - CORS preflight requests
+
+## Request Format
+
+All POST, PUT, and DELETE requests must:
+
+- Use `Content-Type: application/json` header
+- Send data as JSON in the request body
+- Use UTF-8 encoding
+
+## Response Format
+
+All API responses return JSON with the following structure:
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "data": [...],
+  "message": "Operation completed successfully"
+}
+```
+
+### Error Response
+
+```json
+{
+  "success": false,
+  "error": "Error message describing what went wrong"
+}
+```
+
+## Response Fields
+
+<ResponseField name="success" type="boolean" required>
+  Indicates whether the request was successful
+</ResponseField>
+
+<ResponseField name="data" type="array | object">
+  Contains the requested data (for GET requests or successful CREATE operations)
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Success message for POST, PUT, DELETE operations
+</ResponseField>
+
+<ResponseField name="error" type="string">
+  Error message when success is false
+</ResponseField>
+
+<ResponseField name="id" type="integer">
+  The ID of the newly created resource (for POST requests)
+</ResponseField>
+
+## CORS Support
+
+The API supports Cross-Origin Resource Sharing (CORS) with the following headers:
+
+```
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+Access-Control-Allow-Headers: Content-Type
+```
+
+## Caching
+
+Some endpoints include cache-control headers:
+
+```
+Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+Pragma: no-cache
+```
+
+## Common Error Messages
+
+| Error Message | Description |
+|---------------|-------------|
+| `Datos inválidos` | Invalid or malformed JSON in request body |
+| `ID inválido` | Invalid or missing ID parameter |
+| `Método no permitido` | HTTP method not supported for this endpoint |
+| `Error del servidor: [details]` | Server-side exception occurred |
+
+## Available Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Warehouses" icon="warehouse" href="/api/warehouses">
+    Manage warehouse locations
+  </Card>
+  <Card title="Categories" icon="folder" href="/api/categories">
+    Manage product categories
+  </Card>
+  <Card title="Subcategories" icon="folder-tree" href="/api/subcategories">
+    Manage product subcategories
+  </Card>
+  <Card title="Suppliers" icon="truck" href="/api/suppliers">
+    Manage supplier information
+  </Card>
+  <Card title="Parameters" icon="sliders" href="/api/parameters">
+    Manage system parameters and statuses
+  </Card>
+</CardGroup>
+
+## Data Ordering
+
+All GET endpoints return data ordered by `id DESC` (newest first) unless otherwise specified.

@@ -1,0 +1,766 @@
+---
+title: 'Troubleshooting'
+description: 'Common issues and solutions for Pro Stock Tool development'
+---
+
+## Overview
+
+This guide covers common problems you may encounter when developing or deploying Pro Stock Tool, along with step-by-step solutions.
+
+## Database Connection Issues
+
+<AccordionGroup>
+  <Accordion title="Error: Connection refused" icon="database">
+    **Symptom**: API returns 500 error with "Error de conexión a la base de datos"
+
+    **Possible Causes:**
+    - MySQL server is not running
+    - Incorrect database credentials
+    - Database does not exist
+
+    **Solutions:**
+
+    <Steps>
+      <Step title="Verify MySQL is running">
+        ```bash Windows (XAMPP)
+        # Check if MySQL service is running
+        # Open XAMPP Control Panel and start MySQL
+        ```
+
+        ```bash Linux/Mac
+        sudo systemctl status mysql
+        # or
+        sudo service mysql status
+        ```
+      </Step>
+
+      <Step title="Check database credentials">
+        Edit `database/conexion.php`:
+
+        ```php database/conexion.php
+        $host = "localhost";  // Usually localhost
+        $user = "root";       // Default XAMPP user
+        $pass = "";           // Default XAMPP password (empty)
+        $db = "prostocktool"; // Your database name
+        ```
+      </Step>
+
+      <Step title="Create database if missing">
+        ```sql
+        CREATE DATABASE prostocktool CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+        ```
+      </Step>
+
+      <Step title="Verify connection">
+        Create a test file:
+
+        ```php test-connection.php
+        <?php
+        require 'database/conexion.php';
+        echo json_encode(['status' => 'connected', 'db' => $db]);
+        $conn->close();
+        ?>
+        ```
+
+        Visit: `http://localhost/Pro-Stock-Tool/test-connection.php`
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="Error: Table doesn't exist" icon="table">
+    **Symptom**: SQL error "Table 'prostocktool.bodegas' doesn't exist"
+
+    **Solution**: Run the database migration scripts to create required tables.
+
+    ```sql Create bodegas table
+    CREATE TABLE `bodegas` (
+      `id` INT AUTO_INCREMENT PRIMARY KEY,
+      `nombre` VARCHAR(100) NOT NULL UNIQUE,
+      `descripcion` TEXT,
+      `fecha_creacion` DATETIME DEFAULT CURRENT_TIMESTAMP,
+      `fecha_actualizacion` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ```
+
+    ```sql Create categorias table
+    CREATE TABLE `categorias` (
+      `id` INT AUTO_INCREMENT PRIMARY KEY,
+      `nombre` VARCHAR(50) NOT NULL UNIQUE,
+      `descripcion` VARCHAR(200),
+      `color` VARCHAR(7) DEFAULT '#2e6df6',
+      `estado` ENUM('ACTIVO', 'INACTIVO') DEFAULT 'ACTIVO',
+      `fecha_creacion` DATETIME DEFAULT CURRENT_TIMESTAMP,
+      `fecha_actualizacion` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ```
+
+    ```sql Create proveedores table
+    CREATE TABLE `proveedores` (
+      `id` INT AUTO_INCREMENT PRIMARY KEY,
+      `nombre` VARCHAR(100) NOT NULL,
+      `contacto` VARCHAR(100),
+      `telefono` VARCHAR(20),
+      `email` VARCHAR(100),
+      `direccion` TEXT,
+      `fecha_creacion` DATETIME DEFAULT CURRENT_TIMESTAMP,
+      `fecha_actualizacion` DATETIME DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ```
+
+    ```sql Create usuarios table
+    CREATE TABLE `usuarios` (
+      `id` INT AUTO_INCREMENT PRIMARY KEY,
+      `email` VARCHAR(100) NOT NULL UNIQUE,
+      `nombre` VARCHAR(100) NOT NULL,
+      `identidad` VARCHAR(20) NOT NULL UNIQUE,
+      `password` VARCHAR(255) NOT NULL,
+      `creado_en` DATETIME DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    ```
+  </Accordion>
+
+  <Accordion title="Error: Foreign key constraint fails" icon="link-slash">
+    **Symptom**: Cannot delete record due to foreign key references
+
+    **Example Error**: "No se puede eliminar. Tiene 5 producto(s) asociado(s)"
+
+    **This is expected behavior** - the application prevents deletion of records that have related data.
+
+    **Solutions:**
+    1. Delete or reassign related records first
+    2. If testing, use CASCADE delete (not recommended for production):
+
+    ```sql For testing only
+    ALTER TABLE productos 
+    DROP FOREIGN KEY fk_bodega,
+    ADD CONSTRAINT fk_bodega 
+      FOREIGN KEY (bodega_id) 
+      REFERENCES bodegas(id) 
+      ON DELETE CASCADE;
+    ```
+
+    <Warning>
+    Cascading deletes will permanently remove all related records. Only use in development.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+## CORS and API Issues
+
+<AccordionGroup>
+  <Accordion title="CORS error in browser console" icon="globe">
+    **Symptom**: Console shows "Access-Control-Allow-Origin" error
+
+    **Cause**: Missing or incorrect CORS headers in PHP endpoints
+
+    **Solution**: Verify all PHP files have proper CORS headers:
+
+    ```php Required headers
+    <?php
+    header('Content-Type: application/json; charset=utf-8');
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
+
+    // Handle preflight OPTIONS request
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        http_response_code(200);
+        exit;
+    }
+    ?>
+    ```
+
+    <Note>
+    In production, replace `*` with your specific domain:
+    ```php
+    header('Access-Control-Allow-Origin: https://yourdomain.com');
+    ```
+    </Note>
+  </Accordion>
+
+  <Accordion title="API returns HTML instead of JSON" icon="code">
+    **Symptom**: JavaScript console shows "Unexpected token < in JSON"
+
+    **Causes:**
+    - PHP syntax error
+    - Incorrect file path
+    - PHP not parsing (served as plain text)
+
+    **Solutions:**
+
+    <Steps>
+      <Step title="Check PHP error logs">
+        ```bash XAMPP logs location
+        # Windows
+        C:\xampp\apache\logs\error.log
+
+        # Linux/Mac
+        /opt/lampp/logs/error_log
+        ```
+      </Step>
+
+      <Step title="Enable error display (development only)">
+        Add to top of PHP file:
+
+        ```php
+        <?php
+        error_reporting(E_ALL);
+        ini_set('display_errors', 1);
+        ```
+      </Step>
+
+      <Step title="Verify PHP is processing files">
+        Create test file:
+
+        ```php test.php
+        <?php
+        phpinfo();
+        ?>
+        ```
+
+        If you see PHP code instead of info page, PHP is not configured.
+      </Step>
+
+      <Step title="Check API URL path">
+        ```javascript Verify path in controller
+        const API_URL = 'http://localhost/Pro-Stock-Tool/database/bodega.php';
+        //                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        //                Must match your actual project location
+        ```
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="Fetch request fails silently" icon="network-wired">
+    **Symptom**: No data loads, no error messages
+
+    **Solution**: Add comprehensive error handling:
+
+    ```javascript Proper error handling
+    async function cargarBodegas() {
+        try {
+            console.log('Fetching from:', API_URL); // Debug log
+            
+            const response = await fetch(API_URL, { cache: 'no-store' });
+            
+            console.log('Response status:', response.status); // Debug log
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            console.log('Received data:', data); // Debug log
+            
+            if (data.success) {
+                bodegas = data.data;
+                renderizarBodegas(bodegas);
+            } else {
+                mostrarAlerta('Error: ' + data.error, 'error');
+            }
+        } catch (error) {
+            console.error('Fetch error:', error);
+            mostrarAlerta('Error de conexión: ' + error.message, 'error');
+        }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Frontend Issues
+
+<AccordionGroup>
+  <Accordion title="Modal not opening" icon="window-restore">
+    **Symptoms:**
+    - Click button, nothing happens
+    - Modal appears but can't interact
+
+    **Solutions:**
+
+    <Tabs>
+      <Tab title="Check CSS class">
+        ```javascript
+        function abrirModal() {
+            const modal = document.getElementById('modalOverlay');
+            console.log('Modal element:', modal); // Should not be null
+            modal.classList.add('active'); // or 'open' - check your CSS
+            modal.setAttribute('aria-hidden', 'false');
+        }
+        ```
+
+        Verify CSS:
+        ```css
+        .modal-overlay {
+            display: none; /* Hidden by default */
+        }
+
+        .modal-overlay.active {
+            display: flex; /* Visible when active class added */
+        }
+        ```
+      </Tab>
+
+      <Tab title="Event listener timing">
+        Make sure DOM is loaded:
+
+        ```javascript
+        // WRONG - runs before DOM ready
+        const btn = document.getElementById('btnNuevo');
+        btn.addEventListener('click', abrirModal); // btn is null!
+
+        // CORRECT - waits for DOM
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('btnNuevo');
+            if (btn) {
+                btn.addEventListener('click', abrirModal);
+            } else {
+                console.error('Button not found!');
+            }
+        });
+        ```
+      </Tab>
+
+      <Tab title="Z-index issues">
+        ```css
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999; /* High enough to be on top */
+            background: rgba(0, 0, 0, 0.5);
+        }
+        ```
+      </Tab>
+    </Tabs>
+  </Accordion>
+
+  <Accordion title="Form validation not working" icon="shield-check">
+    **Issue**: Form submits without validation
+
+    **Cause**: Missing `preventDefault()` or validation logic
+
+    **Solution**:
+
+    ```javascript Proper form handling
+    formBodega.addEventListener('submit', function(e) {
+        e.preventDefault(); // CRITICAL - prevents default form submission
+        
+        // Get values
+        const nombre = bodegaNombre.value.trim();
+        const descripcion = bodegaDescripcion.value.trim();
+        
+        // Validate
+        if (!nombre) {
+            mostrarAlerta('El nombre es obligatorio', 'error');
+            bodegaNombre.focus();
+            return; // Stop execution
+        }
+        
+        if (nombre.length > 100) {
+            mostrarAlerta('El nombre no puede superar 100 caracteres', 'error');
+            bodegaNombre.focus();
+            return;
+        }
+        
+        // If validation passes, submit
+        const datos = { nombre, descripcion };
+        
+        if (bodegaEditando) {
+            actualizarBodega(bodegaEditando.id, datos);
+        } else {
+            crearBodega(datos);
+        }
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="Search/filter not working" icon="search">
+    **Issue**: Typing in search box doesn't filter results
+
+    **Solutions:**
+
+    ```javascript Check event listener
+    const searchInput = document.getElementById('buscarBodega');
+    
+    if (!searchInput) {
+        console.error('Search input not found!');
+        return;
+    }
+
+    searchInput.addEventListener('input', filtrarBodegas);
+    // Use 'input' event (fires on every keystroke)
+    // NOT 'change' (only fires on blur)
+    ```
+
+    ```javascript Verify filter logic
+    function filtrarBodegas() {
+        const busqueda = searchInput.value.toLowerCase().trim();
+        
+        console.log('Searching for:', busqueda); // Debug
+        
+        if (busqueda === '') {
+            renderizarBodegas(bodegas); // Show all
+            return;
+        }
+        
+        const filtradas = bodegas.filter(bodega => {
+            return bodega.nombre.toLowerCase().includes(busqueda) ||
+                   (bodega.descripcion && bodega.descripcion.toLowerCase().includes(busqueda));
+        });
+        
+        console.log('Found:', filtradas.length); // Debug
+        renderizarBodegas(filtradas);
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Edit button not populating form" icon="edit">
+    **Issue**: Click edit, modal opens but form is empty
+
+    **Solution**:
+
+    ```javascript Check data retrieval
+    function editarBodega(id) {
+        console.log('Editing ID:', id);
+        
+        // Convert both to same type for comparison
+        const bodega = bodegas.find(b => Number(b.id) === Number(id));
+        
+        if (!bodega) {
+            console.error('Bodega not found with ID:', id);
+            mostrarAlerta('No se encontró la bodega', 'error');
+            return;
+        }
+        
+        console.log('Found bodega:', bodega);
+        
+        bodegaEditando = bodega;
+        modalTitle.textContent = 'Editar Bodega';
+        
+        // Populate form fields
+        bodegaNombre.value = bodega.nombre || '';
+        bodegaDescripcion.value = bodega.descripcion || '';
+        
+        modalOverlay.classList.add('active');
+        bodegaNombre.focus();
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Styling Issues
+
+<AccordionGroup>
+  <Accordion title="CSS not loading" icon="palette">
+    **Symptoms:**
+    - Page shows unstyled HTML
+    - Browser console shows 404 for CSS files
+
+    **Solutions:**
+
+    <Steps>
+      <Step title="Check file path">
+        ```html For pages in view/ directory
+        <link rel="stylesheet" href="../styles/bodega.css">
+        <!--                         ^^ go up one directory -->
+        ```
+
+        ```html For pages in root directory
+        <link rel="stylesheet" href="styles/bodega.css">
+        <!--                         no ../ prefix -->
+        ```
+      </Step>
+
+      <Step title="Verify file exists">
+        ```bash
+        ls -la styles/
+        # Should show bodega.css, header-footer.css, etc.
+        ```
+      </Step>
+
+      <Step title="Check browser network tab">
+        Open DevTools > Network tab
+        - Look for CSS files in red (404 errors)
+        - Click on failed request to see full path attempted
+      </Step>
+
+      <Step title="Clear browser cache">
+        ```
+        Ctrl+Shift+Delete (Windows/Linux)
+        Cmd+Shift+Delete (Mac)
+        
+        Or hard refresh:
+        Ctrl+F5 (Windows/Linux)
+        Cmd+Shift+R (Mac)
+        ```
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="Responsive layout broken" icon="mobile">
+    **Issue**: Page doesn't adapt to smaller screens
+
+    **Solution**: Verify viewport meta tag:
+
+    ```html Required in <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    ```
+
+    Add media queries:
+
+    ```css
+    /* Mobile breakpoint */
+    @media (max-width: 768px) {
+        .header-actions {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .search-input {
+            width: 100%;
+        }
+        
+        .grid-bodegas {
+            grid-template-columns: 1fr; /* Single column on mobile */
+        }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Performance Issues
+
+<AccordionGroup>
+  <Accordion title="Slow page load" icon="gauge-high">
+    **Causes:**
+    - Large number of database records
+    - Unoptimized queries
+    - Missing indexes
+
+    **Solutions:**
+
+    <Tabs>
+      <Tab title="Add database indexes">
+        ```sql
+        -- Index frequently searched columns
+        CREATE INDEX idx_nombre ON bodegas(nombre);
+        CREATE INDEX idx_estado ON categorias(estado);
+        ```
+      </Tab>
+
+      <Tab title="Implement pagination">
+        ```php Limit results
+        case 'GET':
+            $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 50;
+            $offset = isset($_GET['offset']) ? intval($_GET['offset']) : 0;
+            
+            $sql = "SELECT * FROM bodegas 
+                    ORDER BY id DESC 
+                    LIMIT $limit OFFSET $offset";
+        ```
+
+        ```javascript Frontend pagination
+        async function cargarBodegas(page = 1, limit = 50) {
+            const offset = (page - 1) * limit;
+            const url = `${API_URL}?limit=${limit}&offset=${offset}`;
+            // ... rest of fetch logic
+        }
+        ```
+      </Tab>
+
+      <Tab title="Lazy load images">
+        ```html
+        <img src="placeholder.jpg" 
+             data-src="actual-image.jpg" 
+             loading="lazy" 
+             alt="Description">
+        ```
+      </Tab>
+    </Tabs>
+  </Accordion>
+
+  <Accordion title="Memory leaks" icon="memory">
+    **Symptom**: Browser tab slows down over time
+
+    **Cause**: Event listeners not removed
+
+    **Solution**:
+
+    ```javascript Clean up when needed
+    // Store reference to listener
+    let searchHandler = null;
+
+    function initializeSearch() {
+        // Remove old listener if exists
+        if (searchHandler) {
+            searchInput.removeEventListener('input', searchHandler);
+        }
+        
+        // Create new listener
+        searchHandler = () => filtrarBodegas();
+        searchInput.addEventListener('input', searchHandler);
+    }
+
+    // For dynamically created elements, use event delegation
+    // (already implemented in Pro Stock Tool pattern)
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Deployment Issues
+
+<AccordionGroup>
+  <Accordion title="Works locally but not on server" icon="server">
+    **Common causes:**
+
+    <Steps>
+      <Step title="Update database credentials">
+        ```php Production database/conexion.php
+        $host = "mysql.yourhost.com"; // Not localhost
+        $user = "prod_user";
+        $pass = "secure_password";
+        $db = "prod_prostocktool";
+        ```
+      </Step>
+
+      <Step title="Fix absolute URLs">
+        ```javascript Change from localhost
+        // BEFORE
+        const API_URL = 'http://localhost/Pro-Stock-Tool/database/bodega.php';
+
+        // AFTER
+        const API_URL = '/database/bodega.php'; // Relative path
+        // or
+        const API_URL = 'https://yourdomain.com/api/bodega.php';
+        ```
+      </Step>
+
+      <Step title="Check file permissions">
+        ```bash
+        # PHP files need execute permission
+        chmod 644 database/*.php
+        chmod 755 database/
+        ```
+      </Step>
+
+      <Step title="Enable error logging">
+        ```php Don't display errors in production
+        <?php
+        error_reporting(E_ALL);
+        ini_set('display_errors', 0); // Don't show to users
+        ini_set('log_errors', 1);
+        ini_set('error_log', '/path/to/error.log');
+        ```
+      </Step>
+    </Steps>
+  </Accordion>
+
+  <Accordion title="Character encoding issues (á, é, ñ)" icon="font">
+    **Symptom**: Spanish characters display as �� or strange symbols
+
+    **Solution**: Ensure UTF-8 everywhere:
+
+    <Tabs>
+      <Tab title="Database">
+        ```sql
+        ALTER DATABASE prostocktool 
+        CHARACTER SET utf8mb4 
+        COLLATE utf8mb4_unicode_ci;
+
+        ALTER TABLE bodegas 
+        CONVERT TO CHARACTER SET utf8mb4 
+        COLLATE utf8mb4_unicode_ci;
+        ```
+      </Tab>
+
+      <Tab title="PHP">
+        ```php
+        header('Content-Type: application/json; charset=utf-8');
+        
+        // Use JSON_UNESCAPED_UNICODE
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        ```
+      </Tab>
+
+      <Tab title="HTML">
+        ```html
+        <meta charset="UTF-8">
+        ```
+      </Tab>
+
+      <Tab title="Connection">
+        ```php
+        $conn = new mysqli($host, $user, $pass, $db);
+        $conn->set_charset("utf8mb4");
+        ```
+      </Tab>
+    </Tabs>
+  </Accordion>
+</AccordionGroup>
+
+## Debugging Tools
+
+<CardGroup cols={2}>
+  <Card title="Browser DevTools" icon="browser">
+    **Console**: View JavaScript errors
+    
+    **Network**: Monitor API requests
+    
+    **Elements**: Inspect HTML/CSS
+    
+    **Shortcut**: F12
+  </Card>
+
+  <Card title="PHP Error Logs" icon="file-lines">
+    **XAMPP Windows**:
+    ```
+    C:\xampp\apache\logs\error.log
+    ```
+
+    **XAMPP Linux/Mac**:
+    ```
+    /opt/lampp/logs/error_log
+    ```
+  </Card>
+
+  <Card title="console.log() Debugging" icon="terminal">
+    ```javascript
+    console.log('Variable:', variable);
+    console.table(arrayOfObjects);
+    console.error('Error:', error);
+    ```
+  </Card>
+
+  <Card title="Network Testing" icon="network-wired">
+    **Test API directly**:
+    ```bash
+    curl -X GET http://localhost/Pro-Stock-Tool/database/bodega.php
+    ```
+
+    Or use Postman/Insomnia
+  </Card>
+</CardGroup>
+
+## Getting Help
+
+<Note>
+When reporting issues, include:
+- Browser and version (Chrome 120, Firefox 115, etc.)
+- Operating system (Windows 11, macOS 14, Ubuntu 22.04)
+- PHP version (`php -v`)
+- MySQL version (`mysql --version`)
+- Error messages (exact text)
+- Steps to reproduce
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="Project Structure" icon="folder-tree" href="/guides/project-structure">
+    Review the folder organization
+  </Card>
+  <Card title="Coding Standards" icon="code" href="/guides/coding-standards">
+    Check code conventions and patterns
+  </Card>
+</CardGroup>

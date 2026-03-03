@@ -1,0 +1,440 @@
+---
+title: Server Setup
+description: Learn how to configure Apache and PHP for Pro Stock Tool
+---
+
+## Overview
+
+Pro Stock Tool requires a properly configured Apache web server with PHP to run. This guide walks you through setting up your server environment for development and production deployments.
+
+## Prerequisites
+
+Before you begin, ensure you have:
+
+- Apache 2.4 or higher
+- PHP 7.4 or higher (PHP 8.0+ recommended)
+- MySQL 5.7 or higher (or MariaDB 10.3+)
+- mod_rewrite enabled in Apache
+- Write permissions on the application directory
+
+## Apache Configuration
+
+<Steps>
+
+<Step title="Install Apache">
+
+Install Apache web server based on your operating system:
+
+**Ubuntu/Debian:**
+```bash
+sudo apt update
+sudo apt install apache2
+```
+
+**CentOS/RHEL:**
+```bash
+sudo yum install httpd
+sudo systemctl start httpd
+sudo systemctl enable httpd
+```
+
+**macOS (using Homebrew):**
+```bash
+brew install httpd
+brew services start httpd
+```
+
+**Windows:**
+Download and install Apache from [Apache Lounge](https://www.apachelounge.com/download/)
+
+</Step>
+
+<Step title="Enable Required Modules">
+
+Enable the necessary Apache modules for Pro Stock Tool:
+
+```bash
+sudo a2enmod rewrite
+sudo a2enmod headers
+sudo a2enmod expires
+sudo systemctl restart apache2
+```
+
+<Note>
+On CentOS/RHEL, these modules are typically enabled by default. Check your `/etc/httpd/conf.modules.d/` directory.
+</Note>
+
+</Step>
+
+<Step title="Configure Virtual Host">
+
+Create a virtual host configuration for Pro Stock Tool. Create a new file `/etc/apache2/sites-available/prostocktool.conf`:
+
+```apache
+<VirtualHost *:80>
+    ServerName prostocktool.local
+    DocumentRoot /var/www/prostocktool
+
+    <Directory /var/www/prostocktool>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    # Enable CORS headers for API endpoints
+    <Directory /var/www/prostocktool/database>
+        Header set Access-Control-Allow-Origin "*"
+        Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        Header set Access-Control-Allow-Headers "Content-Type"
+    </Directory>
+
+    # Logging
+    ErrorLog ${APACHE_LOG_DIR}/prostocktool-error.log
+    CustomLog ${APACHE_LOG_DIR}/prostocktool-access.log combined
+</VirtualHost>
+```
+
+Enable the site and reload Apache:
+
+```bash
+sudo a2ensite prostocktool.conf
+sudo systemctl reload apache2
+```
+
+</Step>
+
+<Step title="Update Hosts File">
+
+For local development, add the domain to your hosts file:
+
+**Linux/macOS:**
+```bash
+sudo nano /etc/hosts
+```
+
+**Windows:**
+```powershell
+notepad C:\Windows\System32\drivers\etc\hosts
+```
+
+Add this line:
+```
+127.0.0.1    prostocktool.local
+```
+
+</Step>
+
+</Steps>
+
+## PHP Configuration
+
+<Steps>
+
+<Step title="Install PHP and Extensions">
+
+Install PHP with required extensions:
+
+**Ubuntu/Debian:**
+```bash
+sudo apt install php php-mysql php-mbstring php-json php-curl
+sudo systemctl restart apache2
+```
+
+**CentOS/RHEL:**
+```bash
+sudo yum install php php-mysqlnd php-mbstring php-json
+sudo systemctl restart httpd
+```
+
+**macOS:**
+```bash
+brew install php
+brew services restart httpd
+```
+
+</Step>
+
+<Step title="Configure php.ini">
+
+Edit your `php.ini` file (location varies by OS, typically `/etc/php/8.x/apache2/php.ini`):
+
+```ini
+; Increase memory limit
+memory_limit = 256M
+
+; Set timezone
+date.timezone = America/New_York
+
+; Enable error reporting for development
+display_errors = On
+error_reporting = E_ALL
+
+; For production, disable error display
+; display_errors = Off
+; log_errors = On
+; error_log = /var/log/php/error.log
+
+; File upload limits
+upload_max_filesize = 20M
+post_max_size = 20M
+
+; Session settings
+session.save_handler = files
+session.save_path = "/var/lib/php/sessions"
+
+; Security settings
+expose_php = Off
+```
+
+<Warning>
+For production environments, always set `display_errors = Off` and enable `log_errors` to prevent sensitive information from being exposed.
+</Warning>
+
+Restart Apache after making changes:
+
+```bash
+sudo systemctl restart apache2
+```
+
+</Step>
+
+<Step title="Verify PHP Installation">
+
+Create a test file to verify PHP is working:
+
+```bash
+echo "<?php phpinfo(); ?>" | sudo tee /var/www/prostocktool/info.php
+```
+
+Visit `http://prostocktool.local/info.php` in your browser. You should see the PHP information page.
+
+<Note>
+Delete `info.php` after verification as it can expose sensitive server information.
+</Note>
+
+</Step>
+
+</Steps>
+
+## Directory Structure Setup
+
+<Steps>
+
+<Step title="Create Application Directory">
+
+Set up the application directory structure:
+
+```bash
+sudo mkdir -p /var/www/prostocktool
+cd /var/www/prostocktool
+```
+
+</Step>
+
+<Step title="Clone or Copy Source Files">
+
+Copy your Pro Stock Tool files to the web directory:
+
+```bash
+# From your source directory
+sudo cp -r /path/to/source/* /var/www/prostocktool/
+```
+
+Your directory should contain:
+- `database/` - PHP backend files
+- `controllers/` - JavaScript controllers
+- `view/` - HTML view files
+- `styles/` - CSS stylesheets
+- `img/` - Image assets
+- `login.html` - Registration page
+- `Inicio-Sesion.html` - Login page
+
+</Step>
+
+<Step title="Set Proper Permissions">
+
+Set the correct ownership and permissions:
+
+```bash
+sudo chown -R www-data:www-data /var/www/prostocktool
+sudo chmod -R 755 /var/www/prostocktool
+```
+
+**For CentOS/RHEL:**
+```bash
+sudo chown -R apache:apache /var/www/prostocktool
+sudo chmod -R 755 /var/www/prostocktool
+```
+
+<Note>
+The web server user varies by OS: `www-data` (Ubuntu/Debian), `apache` (CentOS/RHEL), or `_www` (macOS).
+</Note>
+
+</Step>
+
+</Steps>
+
+## SSL/TLS Configuration (Production)
+
+For production deployments, enable HTTPS using SSL certificates:
+
+<Steps>
+
+<Step title="Install Certbot">
+
+```bash
+sudo apt install certbot python3-certbot-apache
+```
+
+</Step>
+
+<Step title="Obtain SSL Certificate">
+
+```bash
+sudo certbot --apache -d yourdomain.com -d www.yourdomain.com
+```
+
+Certbot will automatically configure Apache for HTTPS.
+
+</Step>
+
+<Step title="Auto-Renewal">
+
+Test the renewal process:
+
+```bash
+sudo certbot renew --dry-run
+```
+
+Certbot automatically sets up a cron job for renewal.
+
+</Step>
+
+</Steps>
+
+## Performance Optimization
+
+### Enable PHP OPcache
+
+Add to your `php.ini`:
+
+```ini
+opcache.enable=1
+opcache.memory_consumption=128
+opcache.interned_strings_buffer=8
+opcache.max_accelerated_files=4000
+opcache.revalidate_freq=60
+```
+
+### Enable Apache Compression
+
+Enable mod_deflate:
+
+```bash
+sudo a2enmod deflate
+```
+
+Add to your virtual host:
+
+```apache
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+```
+
+### Enable Browser Caching
+
+Enable mod_expires:
+
+```bash
+sudo a2enmod expires
+```
+
+Add to your virtual host:
+
+```apache
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+</IfModule>
+```
+
+## Troubleshooting
+
+### Apache Won't Start
+
+Check for configuration errors:
+
+```bash
+sudo apache2ctl configtest
+```
+
+View error logs:
+
+```bash
+sudo tail -f /var/log/apache2/error.log
+```
+
+### Permission Denied Errors
+
+Check SELinux status (CentOS/RHEL):
+
+```bash
+sudo setsebool -P httpd_can_network_connect 1
+sudo setsebool -P httpd_can_network_connect_db 1
+```
+
+### PHP Not Executing
+
+Verify PHP module is loaded:
+
+```bash
+apache2ctl -M | grep php
+```
+
+If not present, enable the PHP module:
+
+```bash
+sudo a2enmod php8.1  # Adjust version as needed
+sudo systemctl restart apache2
+```
+
+### CORS Issues
+
+Ensure CORS headers are properly set in your PHP files. All API endpoints in Pro Stock Tool include:
+
+```php
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+```
+
+## Security Best Practices
+
+<Warning>
+Always follow these security practices for production deployments:
+</Warning>
+
+1. **Disable directory listing**: Set `Options -Indexes` in your virtual host
+2. **Hide PHP version**: Set `expose_php = Off` in php.ini
+3. **Use HTTPS**: Always use SSL/TLS certificates in production
+4. **Restrict database access**: Only allow connections from localhost
+5. **Keep software updated**: Regularly update Apache, PHP, and dependencies
+6. **Set secure file permissions**: Never use 777 permissions
+7. **Use environment variables**: Store sensitive data in environment variables, not in code
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Database Configuration" icon="database" href="/guides/database-configuration">
+    Set up MySQL database and tables
+  </Card>
+  <Card title="Frontend Setup" icon="browser" href="/guides/frontend-setup">
+    Configure frontend files and structure
+  </Card>
+</CardGroup>

@@ -1,0 +1,359 @@
+---
+title: Warehouse Management
+description: Manage warehouse locations (bodegas) for inventory organization and tracking
+---
+
+## Overview
+
+The warehouse management system allows you to create and manage multiple storage locations (bodegas) for organizing your inventory. Each warehouse has a unique name and optional description to help you track products across different physical locations.
+
+## Key Features
+
+- Create and manage multiple warehouses
+- Search and filter warehouses by name or description
+- Track products associated with each warehouse
+- Real-time statistics and counts
+- Validation to prevent deletion of warehouses with products
+
+## Data Structure
+
+Each warehouse contains the following fields:
+
+| Field | Type | Required | Max Length | Description |
+|-------|------|----------|------------|--------------|
+| `id` | Integer | Auto | - | Unique identifier |
+| `nombre` | String | Yes | 100 chars | Warehouse name (must be unique) |
+| `descripcion` | String | No | - | Optional description |
+| `fecha_creacion` | DateTime | Auto | - | Creation timestamp |
+| `fecha_actualizacion` | DateTime | Auto | - | Last update timestamp |
+
+## User Workflows
+
+### Creating a Warehouse
+
+<Steps>
+  <Step title="Open the create dialog">
+    Click the **Nueva Bodega** button in the top-right corner of the warehouse management page.
+  </Step>
+  
+  <Step title="Enter warehouse details">
+    Fill in the required fields:
+    - **Nombre** (required): A unique name for the warehouse
+    - **Descripción** (optional): Additional details about the warehouse location
+  </Step>
+  
+  <Step title="Save the warehouse">
+    Click **Guardar** to create the warehouse. The system will validate:
+    - Name is not empty
+    - Name doesn't exceed 100 characters
+    - Name is unique across all warehouses
+  </Step>
+</Steps>
+
+<Note>
+  Warehouse names must be unique. If you try to create a warehouse with an existing name, you'll receive an error message.
+</Note>
+
+### Editing a Warehouse
+
+<Steps>
+  <Step title="Locate the warehouse">
+    Use the search bar to filter warehouses or browse the list of warehouse cards.
+  </Step>
+  
+  <Step title="Open edit mode">
+    Click the **Editar** button on the warehouse card you want to modify.
+  </Step>
+  
+  <Step title="Update details">
+    Modify the name or description as needed. The same validation rules apply as when creating.
+  </Step>
+  
+  <Step title="Save changes">
+    Click **Guardar** to update the warehouse information.
+  </Step>
+</Steps>
+
+### Deleting a Warehouse
+
+<Warning>
+  You cannot delete a warehouse that has products associated with it. You must first reassign or remove all products before deletion.
+</Warning>
+
+<Steps>
+  <Step title="Select warehouse">
+    Click the **Eliminar** button on the warehouse card you want to remove.
+  </Step>
+  
+  <Step title="Confirm deletion">
+    A confirmation modal will display the warehouse name. Review carefully and click **Confirmar** to proceed.
+  </Step>
+  
+  <Step title="Validation check">
+    The system checks for associated products:
+    - If products exist, deletion is blocked with an error message showing the count
+    - If no products exist, the warehouse is permanently deleted
+  </Step>
+</Steps>
+
+### Searching Warehouses
+
+The search feature filters warehouses in real-time:
+
+- Type in the search input at the top of the page
+- Results filter by **name** or **description**
+- Search is case-insensitive
+- Clear the search to show all warehouses
+
+## API Reference
+
+The warehouse API endpoint is located at:
+
+```
+GET    /database/bodega.php      # List all warehouses
+POST   /database/bodega.php      # Create new warehouse
+PUT    /database/bodega.php      # Update warehouse
+DELETE /database/bodega.php      # Delete warehouse
+```
+
+### Get All Warehouses
+
+<Tabs>
+  <Tab title="Request">
+    ```javascript
+    const response = await fetch('database/bodega.php?_=' + Date.now(), {
+      cache: 'no-store'
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Response">
+    ```json
+    {
+      "success": true,
+      "data": [
+        {
+          "id": "1",
+          "nombre": "Bodega Principal",
+          "descripcion": "Almacén central de productos"
+        },
+        {
+          "id": "2",
+          "nombre": "Bodega Secundaria",
+          "descripcion": "Depósito auxiliar"
+        }
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Create Warehouse
+
+<Tabs>
+  <Tab title="Request">
+    ```javascript
+    const response = await fetch('database/bodega.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre: 'Nueva Bodega',
+        descripcion: 'Descripción opcional'
+      })
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Success Response">
+    ```json
+    {
+      "success": true,
+      "id": 3,
+      "message": "Bodega creada exitosamente"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Error Response">
+    ```json
+    {
+      "success": false,
+      "error": "Ya existe una bodega con este nombre"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Update Warehouse
+
+<Tabs>
+  <Tab title="Request">
+    ```javascript
+    const response = await fetch('database/bodega.php', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: 1,
+        nombre: 'Bodega Actualizada',
+        descripcion: 'Nueva descripción'
+      })
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Success Response">
+    ```json
+    {
+      "success": true,
+      "message": "Bodega actualizada exitosamente"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Delete Warehouse
+
+<Tabs>
+  <Tab title="Request">
+    ```javascript
+    const response = await fetch('database/bodega.php', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: 1 })
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Success Response">
+    ```json
+    {
+      "success": true,
+      "message": "Bodega eliminada exitosamente"
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Error Response (Has Products)">
+    ```json
+    {
+      "success": false,
+      "error": "No se puede eliminar. Tiene 15 producto(s) asociado(s)"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Validation Rules
+
+The system enforces the following validation rules:
+
+<AccordionGroup>
+  <Accordion title="Name Validation">
+    - **Required**: Cannot be empty
+    - **Max Length**: 100 characters
+    - **Uniqueness**: Must be unique across all warehouses
+    - **Whitespace**: Leading and trailing spaces are automatically trimmed
+  </Accordion>
+  
+  <Accordion title="Description Validation">
+    - **Optional**: Can be left empty
+    - **No Length Limit**: Backend doesn't enforce a character limit
+    - **Whitespace**: Leading and trailing spaces are automatically trimmed
+  </Accordion>
+  
+  <Accordion title="Deletion Validation">
+    - **Product Check**: Automatically counts associated products
+    - **Blocked if Products Exist**: Cannot delete if `COUNT(productos) > 0`
+    - **Error Message**: Shows exact count of blocking products
+  </Accordion>
+</AccordionGroup>
+
+## UI Components
+
+### Warehouse Card
+
+Each warehouse is displayed as a card showing:
+
+- **Header**: Warehouse name
+- **Details**: Description (if provided)
+- **Actions**: Edit and Delete buttons
+- **Visual**: Warehouse icon for easy identification
+
+### Empty State
+
+When no warehouses exist, the system displays:
+
+```
+┌─────────────────────────────┐
+│     📦 Warehouse Icon       │
+│                             │
+│  No hay bodegas registradas │
+│ Comienza creando tu primera │
+│          bodega             │
+└─────────────────────────────┘
+```
+
+### Statistics
+
+The page header shows:
+
+- **Total Warehouses**: Real-time count of all warehouses in the system
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Descriptive Names" icon="tag">
+    Choose clear, unique names that identify the physical location (e.g., "Main Warehouse", "North Storage", "Retail Floor")
+  </Card>
+  
+  <Card title="Add Descriptions" icon="file-text">
+    Include location details, capacity info, or usage notes in the description field
+  </Card>
+  
+  <Card title="Plan Before Deleting" icon="triangle-exclamation">
+    Always check product associations before attempting to delete a warehouse
+  </Card>
+  
+  <Card title="Regular Audits" icon="clipboard-check">
+    Periodically review your warehouse list and remove unused locations
+  </Card>
+</CardGroup>
+
+## Technical Implementation
+
+### Frontend (bodega.js)
+
+**Key Functions:**
+
+- `cargarBodegas()` - Fetches all warehouses from the API (line 87)
+- `crearBodega(datos)` - Creates new warehouse (line 106)
+- `actualizarBodega(id, datos)` - Updates existing warehouse (line 131)
+- `eliminarBodega()` - Deletes warehouse after validation (line 156)
+- `filtrarBodegas()` - Real-time search filtering (line 247)
+
+### Backend (bodega.php)
+
+**Database Table:** `bodegas`
+
+**Key Operations:**
+
+- Line 23: SELECT with DESC ordering for recent-first display
+- Line 77: Unique name validation check
+- Line 89: INSERT with automatic timestamp
+- Line 165: Delete validation - checks producto count
+- Line 236: Foreign key relationship check with productos table
+
+<Info>
+  The API uses cache-busting with `?_=${Date.now()}` to ensure fresh data on every request.
+</Info>
+
+## Common Error Messages
+
+| Error Message | Cause | Solution |
+|---------------|-------|----------|
+| "El nombre es obligatorio" | Empty name field | Provide a warehouse name |
+| "El nombre no puede superar 100 caracteres" | Name too long | Shorten the warehouse name |
+| "Ya existe una bodega con este nombre" | Duplicate name | Choose a unique name |
+| "Bodega no encontrada" | Invalid ID on update/delete | Refresh the page and try again |
+| "No se puede eliminar. Tiene X producto(s) asociado(s)" | Products exist | Reassign or delete products first |
+| "Error de conexión" | Network or server issue | Check connection and try again |
